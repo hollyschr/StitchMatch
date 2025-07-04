@@ -911,14 +911,16 @@ def test_database():
             "message": "Database connection successful",
             "pattern_count": pattern_count,
             "user_count": user_count,
-            "tables_exist": True
+            "tables_exist": True,
+            "database_url": DATABASE_URL[:20] + "..." if DATABASE_URL else "Not set"
         }
     except Exception as e:
         db.close()
         return {
             "message": "Database error",
             "error": str(e),
-            "tables_exist": False
+            "tables_exist": False,
+            "database_url": DATABASE_URL[:20] + "..." if DATABASE_URL else "Not set"
         }
 
 @app.get("/test-patterns")
