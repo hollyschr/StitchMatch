@@ -36,7 +36,7 @@ A full-stack web application for managing and browsing patterns using a FastAPI 
    ```bash
    npm run dev
    ```
-   The app will be available at [http://localhost:5173](http://localhost:5173)
+   The app will be available at [http://localhost:3000](http://localhost:3000)
 
 ## Project Structure
 - `app.py` - FastAPI backend
