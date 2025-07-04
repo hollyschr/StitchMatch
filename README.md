@@ -1,4 +1,5 @@
-# SM_Site
+# StitchMatch
+Find Perfect Patterns for Your Stash
 
 A full-stack web application for managing and browsing patterns using a FastAPI backend with a SQLite database and a React (Vite) frontend.
 
@@ -46,4 +47,4 @@ A full-stack web application for managing and browsing patterns using a FastAPI 
 
 ## Notes
 - Make sure the backend is running before using the frontend.
-- The frontend communicates with the backend via HTTP API endpoints. 
+- The frontend communicates with the backend via HTTP API endpoints.
