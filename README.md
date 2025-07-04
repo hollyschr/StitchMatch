@@ -17,9 +17,9 @@ A full-stack web application for managing and browsing patterns using a FastAPI 
    ```
 3. Run the backend server:
    ```bash
-   uvicorn app:app --reload
+   uvicorn app:app --host 0.0.0.0 --port 8080 --reload
    ```
-   The API will be available at [http://127.0.0.1:8000](http://127.0.0.1:8000)
+   The API will be available at [http://127.0.0.1:8080](http://127.0.0.1:8080)
 
 ## Frontend (React + Vite)
 
