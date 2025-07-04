@@ -770,144 +770,156 @@ def get_all_patterns(
         page_size = 30
     if page_size > 100:
         page_size = 100
+    
     db = SessionLocal()
-    
-    # Start with all patterns
-    query = db.query(Pattern)
-    
-    # Apply filters
-    if project_type:
-        query = query.join(SuitableFor).join(ProjectType).filter(
-            ProjectType.name.ilike(f"%{project_type}%")
-        )
-    
-    if craft_type:
-        query = query.join(RequiresCraftType).join(CraftType).filter(
-            CraftType.name.ilike(f"%{craft_type}%")
-        )
-    
-    if weight:
-        query = query.join(PatternSuggestsYarn).join(YarnType).filter(
-            YarnType.weight.ilike(f"%{weight}%")
-        )
-    
-    if designer:
-        query = query.filter(Pattern.designer.ilike(f"%{designer}%"))
-    
-    if uploaded_only:
-        if not user_id:
-            db.close()
-            raise HTTPException(status_code=400, detail="user_id is required when uploaded_only is true")
-        # Only show patterns uploaded by this user
-        query = query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
-    
-    # Get total count for pagination
-    total_count = query.count()
-    
-    # Apply pagination - ensure page_size is not zero
-    if page_size <= 0:
-        page_size = 30
-    offset = (page - 1) * page_size
-    patterns = query.limit(page_size).offset(offset).all()
-    
-    # Build response with related data
-    result = []
-    for pattern in patterns:
-        # Get craft type
-        craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
-            RequiresCraftType.pattern_id == pattern.pattern_id
-        ).first()
-        craft_type_name = craft_type_result[0] if craft_type_result else None
-        
-        # Get project type
-        project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
-            SuitableFor.pattern_id == pattern.pattern_id
-        ).first()
-        project_type_name = project_type_result[0] if project_type_result else None
-        
-        # Get yarn weight and yardage/grams from PatternSuggestsYarn
-        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
-            PatternSuggestsYarn.pattern_id == pattern.pattern_id
-        ).first()
-        yarn_weight = yarn_result[0] if yarn_result else None
-        yardage_min = yarn_result[1] if yarn_result else None
-        yardage_max = yarn_result[2] if yarn_result else None
-        grams_min = yarn_result[3] if yarn_result else None
-        grams_max = yarn_result[4] if yarn_result else None
-        
-        # Get pattern link and price
-        link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
-            HasLink_Link.pattern_id == pattern.pattern_id
-        ).first()
-        
-        # For imported patterns, use the HasLink_Link price and URL
-        if link_result:
-            pattern_url = link_result[0]  # Get the URL
-            # Format price for display
-            price_value = link_result[1]
-            if price_value is not None:
-                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
-                    price_display = "Free"
+    try:
+        # Start with all patterns
+        query = db.query(Pattern)
+        # Apply filters
+        if project_type:
+            query = query.join(SuitableFor).join(ProjectType).filter(
+                ProjectType.name.ilike(f"%{project_type}%")
+            )
+        if craft_type:
+            query = query.join(RequiresCraftType).join(CraftType).filter(
+                CraftType.name.ilike(f"%{craft_type}%")
+            )
+        if weight:
+            query = query.join(PatternSuggestsYarn).join(YarnType).filter(
+                YarnType.weight.ilike(f"%{weight}%")
+            )
+        if designer:
+            query = query.filter(Pattern.designer.ilike(f"%{designer}%"))
+        if uploaded_only:
+            if not user_id:
+                db.close()
+                raise HTTPException(status_code=400, detail="user_id is required when uploaded_only is true")
+            # Only show patterns uploaded by this user
+            query = query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+        # Get total count for pagination
+        total_count = query.count()
+        # Apply pagination - ensure page_size is not zero
+        if page_size <= 0:
+            page_size = 30
+        offset = (page - 1) * page_size
+        patterns = query.limit(page_size).offset(offset).all()
+        # Build response with related data
+        result = []
+        for pattern in patterns:
+            # Get craft type
+            craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+                RequiresCraftType.pattern_id == pattern.pattern_id
+            ).first()
+            craft_type_name = craft_type_result[0] if craft_type_result else None
+            # Get project type
+            project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+                SuitableFor.pattern_id == pattern.pattern_id
+            ).first()
+            project_type_name = project_type_result[0] if project_type_result else None
+            # Get yarn weight and yardage/grams from PatternSuggestsYarn
+            yarn_result = db.query(
+                YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max
+            ).join(PatternSuggestsYarn).filter(
+                PatternSuggestsYarn.pattern_id == pattern.pattern_id
+            ).first()
+            yarn_weight = yarn_result[0] if yarn_result else None
+            yardage_min = yarn_result[1] if yarn_result else None
+            yardage_max = yarn_result[2] if yarn_result else None
+            grams_min = yarn_result[3] if yarn_result else None
+            grams_max = yarn_result[4] if yarn_result else None
+            # Get pattern link and price
+            link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+                HasLink_Link.pattern_id == pattern.pattern_id
+            ).first()
+            # For imported patterns, use the HasLink_Link price and URL
+            if link_result:
+                pattern_url = link_result[0]  # Get the URL
+                # Format price for display
+                price_value = link_result[1]
+                if price_value is not None:
+                    if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                        price_display = "Free"
+                    else:
+                        # Keep the original price string as it may contain currency info
+                        price_display = price_value
                 else:
-                    # Keep the original price string as it may contain currency info
-                    price_display = price_value
+                    price_display = None
             else:
+                # This is a user-uploaded pattern, no price or URL
+                pattern_url = None
                 price_display = None
-        else:
-            # This is a user-uploaded pattern, no price or URL
-            pattern_url = None
-            price_display = None
-        
-        result.append(PatternResponse(
-            pattern_id=pattern.pattern_id,
-            name=pattern.name,
-            designer=pattern.designer,
-            image=pattern.image if pattern.image is not None else "/placeholder.svg",
-            pdf_file=pattern.pdf_file,
-            yardage_min=yardage_min,
-            yardage_max=yardage_max,
-            grams_min=grams_min,
-            grams_max=grams_max,
-            project_type=project_type_name,
-            craft_type=craft_type_name,
-            required_weight=yarn_weight,
-            pattern_url=pattern_url,
-            price=price_display
-        ))
-    
-    db.close()
-    
-    # Filter for free patterns if requested (always before shuffle)
-    if free_only:
-        def is_free(p):
-            price = str(p.price).strip().lower() if p.price is not None else ''
-            return price in ['free', '0', '0.0', '$0.00', '0.0 gbp', '0.0 dkk', '0.0 usd']
-        result = [p for p in result if is_free(p)]
-
-    # Shuffle results if requested (after filtering)
-    if shuffle:
-        random.shuffle(result)
-    
-    # Calculate pagination info - ensure page_size is not zero to prevent division by zero
-    if page_size <= 0:
-        page_size = 30
-    total_pages = (total_count + page_size - 1) // page_size
-    
-    return PaginatedPatternResponse(
-        patterns=result,
-        pagination={
-            "page": page,
-            "page_size": page_size,
-            "total": total_count,
-            "pages": total_pages,
-            "has_next": page < total_pages,
-            "has_prev": page > 1
-        }
-    )
+            result.append(PatternResponse(
+                pattern_id=pattern.pattern_id,
+                name=pattern.name,
+                designer=pattern.designer,
+                image=pattern.image if pattern.image is not None else "/placeholder.svg",
+                pdf_file=pattern.pdf_file,
+                yardage_min=yardage_min,
+                yardage_max=yardage_max,
+                grams_min=grams_min,
+                grams_max=grams_max,
+                project_type=project_type_name,
+                craft_type=craft_type_name,
+                required_weight=yarn_weight,
+                pattern_url=pattern_url,
+                price=price_display
+            ))
+        # Filter for free patterns if requested (always before shuffle)
+        if free_only:
+            def is_free(p):
+                price = str(p.price).strip().lower() if p.price is not None else ''
+                return price in ['free', '0', '0.0', '$0.00', '0.0 gbp', '0.0 dkk', '0.0 usd']
+            result = [p for p in result if is_free(p)]
+        # Shuffle results if requested (after filtering)
+        if shuffle:
+            random.shuffle(result)
+        # Calculate pagination info - ensure page_size is not zero to prevent division by zero
+        if page_size <= 0:
+            page_size = 30
+        total_pages = (total_count + page_size - 1) // page_size
+        return PaginatedPatternResponse(
+            patterns=result,
+            pagination={
+                "page": page,
+                "page_size": page_size,
+                "total": total_count,
+                "pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        )
+    except Exception as e:
+        db.close()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        db.close()
 
 @app.get("/test")
 def test_endpoint():
     return {"message": "Backend is working!"}
+
+@app.get("/test-db")
+def test_database():
+    """Test database connection and table creation"""
+    db = SessionLocal()
+    try:
+        # Test if tables exist by trying to query them
+        pattern_count = db.query(Pattern).count()
+        user_count = db.query(User).count()
+        db.close()
+        return {
+            "message": "Database connection successful",
+            "pattern_count": pattern_count,
+            "user_count": user_count,
+            "tables_exist": True
+        }
+    except Exception as e:
+        db.close()
+        return {
+            "message": "Database error",
+            "error": str(e),
+            "tables_exist": False
+        }
 
 @app.get("/test-patterns")
 def test_patterns():
