@@ -1,0 +1,1707 @@
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from pydantic import BaseModel
+from typing import List, Optional
+import hashlib
+import secrets
+import re
+import random
+import os
+
+DATABASE_URL = "sqlite:///StitchMatch.db"
+
+# Create PDF uploads directory if it doesn't exist
+PDF_UPLOADS_DIR = "pdf_uploads"
+os.makedirs(PDF_UPLOADS_DIR, exist_ok=True)
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3002", "http://192.168.1.95:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# SQLAlchemy Models
+class User(Base):
+    __tablename__ = "User"
+    user_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    email = Column(String, unique=True, index=True)
+    password_hash = Column(String, nullable=True)
+    profile_photo = Column(String, nullable=True)
+
+class Pattern(Base):
+    __tablename__ = "Pattern"
+    pattern_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    designer = Column(String)
+    image = Column(String)
+    pdf_file = Column(String, nullable=True)  # Store PDF filename
+
+class ProjectType(Base):
+    __tablename__ = "ProjectType"
+    project_type_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+
+class CraftType(Base):
+    __tablename__ = "CraftType"
+    craft_type_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+
+class YarnType(Base):
+    __tablename__ = "YarnType"
+    yarn_id = Column(String, primary_key=True, index=True)
+    yarn_name = Column(String)
+    brand = Column(String)
+    weight = Column(String)
+    fiber = Column(String)
+
+class Tool(Base):
+    __tablename__ = "Tool"
+    tool_id = Column(Integer, primary_key=True, index=True)
+    type = Column(String)
+    size = Column(String)
+
+class OwnsPattern(Base):
+    __tablename__ = "OwnsPattern"
+    user_id = Column(Integer, ForeignKey("User.user_id"), primary_key=True)
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+
+class OwnsYarn(Base):
+    __tablename__ = "OwnsYarn"
+    user_id = Column(Integer, ForeignKey("User.user_id"), primary_key=True)
+    yarn_id = Column(String, ForeignKey("YarnType.yarn_id"), primary_key=True)
+    yardage = Column(Float)
+    grams = Column(Float)
+
+class OwnsTool(Base):
+    __tablename__ = "OwnsTool"
+    user_id = Column(Integer, ForeignKey("User.user_id"), primary_key=True)
+    tool_id = Column(Integer, ForeignKey("Tool.tool_id"), primary_key=True)
+
+class RequiresCraftType(Base):
+    __tablename__ = "RequiresCraftType"
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+    craft_type_id = Column(Integer, ForeignKey("CraftType.craft_type_id"))
+
+class SuitableFor(Base):
+    __tablename__ = "SuitableFor"
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+    project_type_id = Column(Integer, ForeignKey("ProjectType.project_type_id"), primary_key=True)
+
+class PatternSuggestsYarn(Base):
+    __tablename__ = "PatternSuggestsYarn"
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+    yarn_id = Column(String, ForeignKey("YarnType.yarn_id"), primary_key=True)
+    yardage_min = Column(Float, nullable=True)
+    yardage_max = Column(Float, nullable=True)
+    grams_min = Column(Float, nullable=True)
+    grams_max = Column(Float, nullable=True)
+
+class PatternRequiresTool(Base):
+    __tablename__ = "PatternRequiresTool"
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+    tool_id = Column(Integer, ForeignKey("Tool.tool_id"), primary_key=True)
+
+class HasLink_Link(Base):
+    __tablename__ = "HasLink_Link"
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+    link_id = Column(Integer, primary_key=True, autoincrement=True)
+    url = Column(String)
+    source = Column(String)
+    price = Column(String, nullable=True)
+
+class FavoritePattern(Base):
+    __tablename__ = "FavoritePattern"
+    user_id = Column(Integer, ForeignKey("User.user_id"), primary_key=True)
+    pattern_id = Column(Integer, ForeignKey("Pattern.pattern_id"), primary_key=True)
+
+# Pydantic Schemas
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    profile_photo: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    user_id: int
+    name: str
+    email: str
+    profile_photo: Optional[str] = None
+
+class PatternCreate(BaseModel):
+    name: str
+    designer: str
+    image: str
+    pdf_file: Optional[str] = None  # PDF filename
+    # Metadata fields (these will be stored in normalized tables)
+    yardage_min: Optional[float] = None
+    yardage_max: Optional[float] = None
+    grams_min: Optional[float] = None
+    grams_max: Optional[float] = None
+    project_type: Optional[str] = None
+    craft_type: Optional[str] = None
+    required_weight: Optional[str] = None
+
+class YarnCreate(BaseModel):
+    yarn_name: str
+    brand: str
+    weight: str
+    fiber: str
+    yardage: float
+    grams: float
+
+class ToolCreate(BaseModel):
+    type: str
+    size: str
+
+class PatternResponse(BaseModel):
+    pattern_id: int
+    name: str
+    designer: str
+    image: Optional[str] = None
+    pdf_file: Optional[str] = None  # PDF filename
+    yardage_min: Optional[float] = None
+    yardage_max: Optional[float] = None
+    grams_min: Optional[float] = None
+    grams_max: Optional[float] = None
+    project_type: Optional[str] = None
+    craft_type: Optional[str] = None
+    required_weight: Optional[str] = None
+    pattern_url: Optional[str] = None
+    price: Optional[str] = None  # Price for imported patterns, None for user-uploaded patterns
+
+class PaginatedPatternResponse(BaseModel):
+    patterns: List[PatternResponse]
+    pagination: dict
+
+# Helper functions
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    return hash_password(password) == hashed
+
+# API Endpoints
+
+@app.post("/auth/register", response_model=UserResponse)
+def register_user(user: UserCreate):
+    db = SessionLocal()
+    
+    # Check if email already exists
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        db.close()
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Create new user
+    hashed_password = hash_password(user.password)
+    db_user = User(
+        name=user.name,
+        email=user.email,
+        password_hash=hashed_password,
+        profile_photo=user.profile_photo
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    db.close()
+    
+    return UserResponse(
+        user_id=db_user.user_id,
+        name=db_user.name,
+        email=db_user.email,
+        profile_photo=db_user.profile_photo
+    )
+
+@app.post("/auth/login", response_model=UserResponse)
+def login_user(user: UserLogin):
+    db = SessionLocal()
+    
+    # Find user by email
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user:
+        db.close()
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Verify password
+    if not verify_password(user.password, db_user.password_hash):
+        db.close()
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    db.close()
+    
+    return UserResponse(
+        user_id=db_user.user_id,
+        name=db_user.name,
+        email=db_user.email,
+        profile_photo=db_user.profile_photo
+    )
+
+@app.get("/users/{user_id}/patterns/", response_model=List[PatternResponse])
+def get_user_patterns(user_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get patterns owned by the user
+    user_patterns = db.query(Pattern).join(OwnsPattern).filter(OwnsPattern.user_id == user_id).all()
+    
+    # Build response with related data
+    result = []
+    for pattern in user_patterns:
+        # Get craft type
+        craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+            RequiresCraftType.pattern_id == pattern.pattern_id
+        ).first()
+        craft_type_name = craft_type_result[0] if craft_type_result else None
+        
+        # Get project type
+        project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+            SuitableFor.pattern_id == pattern.pattern_id
+        ).first()
+        project_type_name = project_type_result[0] if project_type_result else None
+        
+        # Get yarn weight and yardage/grams from PatternSuggestsYarn
+        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern.pattern_id
+        ).first()
+        yarn_weight = yarn_result[0] if yarn_result else None
+        yardage_min = yarn_result[1] if yarn_result else None
+        yardage_max = yarn_result[2] if yarn_result else None
+        grams_min = yarn_result[3] if yarn_result else None
+        grams_max = yarn_result[4] if yarn_result else None
+        
+        # For generic yarn types, don't show "Unknown" as the weight
+        if yarn_weight == "Unknown":
+            yarn_weight = None
+        
+        # Get pattern link and price
+        link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+            HasLink_Link.pattern_id == pattern.pattern_id
+        ).first()
+        
+        # For imported patterns, use the HasLink_Link price and URL
+        if link_result:
+            pattern_url = link_result[0]  # Get the URL
+            # Format price for display
+            price_value = link_result[1]
+            if price_value is not None:
+                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                    price_display = "Free"
+                else:
+                    # Keep the original price string as it may contain currency info
+                    price_display = price_value
+            else:
+                price_display = None
+        else:
+            # This is a user-uploaded pattern, no price or URL
+            pattern_url = None
+            price_display = None
+        
+        result.append(PatternResponse(
+            pattern_id=pattern.pattern_id,
+            name=pattern.name,
+            designer=pattern.designer,
+            image=pattern.image if pattern.image is not None else "/placeholder.svg",
+            pdf_file=pattern.pdf_file,
+            yardage_min=yardage_min,
+            yardage_max=yardage_max,
+            grams_min=grams_min,
+            grams_max=grams_max,
+            project_type=project_type_name,
+            craft_type=craft_type_name,
+            required_weight=yarn_weight,
+            pattern_url=pattern_url,
+            price=price_display
+        ))
+    
+    db.close()
+    return result
+
+@app.post("/users/{user_id}/patterns/")
+def add_pattern(user_id: int, pattern: PatternCreate):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Extract metadata fields from pattern data
+    pattern_data = pattern.dict()
+    metadata_fields = {
+        'yardage_min': pattern_data.pop('yardage_min', None),
+        'yardage_max': pattern_data.pop('yardage_max', None),
+        'grams_min': pattern_data.pop('grams_min', None),
+        'grams_max': pattern_data.pop('grams_max', None),
+        'project_type': pattern_data.pop('project_type', None),
+        'craft_type': pattern_data.pop('craft_type', None),
+        'required_weight': pattern_data.pop('required_weight', None),
+    }
+    
+    # Check if pattern already exists (by name and designer)
+    existing_pattern = db.query(Pattern).filter(
+        Pattern.name == pattern_data['name'],
+        Pattern.designer == pattern_data['designer']
+    ).first()
+    
+    if existing_pattern:
+        # Pattern already exists, use existing pattern_id
+        pattern_id = existing_pattern.pattern_id
+    else:
+        # Create new pattern (only core fields)
+        db_pattern = Pattern(**pattern_data)
+        db.add(db_pattern)
+        db.commit()
+        db.refresh(db_pattern)
+        pattern_id = db_pattern.pattern_id
+    
+    # Insert metadata into normalized tables
+    
+    # 1. Handle craft type
+    if metadata_fields['craft_type']:
+        craft_type_obj = db.query(CraftType).filter(
+            CraftType.name.ilike(metadata_fields['craft_type'])
+        ).first()
+        if craft_type_obj:
+            # Only add a craft type if the pattern does not already have any craft type
+            existing_craft_type = db.query(RequiresCraftType).filter(
+                RequiresCraftType.pattern_id == pattern_id
+            ).first()
+            if not existing_craft_type:
+                db_requires_craft = RequiresCraftType(
+                    pattern_id=pattern_id,
+                    craft_type_id=craft_type_obj.craft_type_id
+                )
+                db.add(db_requires_craft)
+
+    # 2. Handle project type
+    if metadata_fields['project_type']:
+        project_type_obj = db.query(ProjectType).filter(
+            ProjectType.name.ilike(metadata_fields['project_type'])
+        ).first()
+        if project_type_obj:
+            # Check if project type relationship already exists
+            existing_project_type = db.query(SuitableFor).filter(
+                SuitableFor.pattern_id == pattern_id,
+                SuitableFor.project_type_id == project_type_obj.project_type_id
+            ).first()
+            if not existing_project_type:
+                db_suitable_for = SuitableFor(
+                    pattern_id=pattern_id,
+                    project_type_id=project_type_obj.project_type_id
+                )
+                db.add(db_suitable_for)
+
+    # 3. Handle yarn weight and yardage/grams
+    if metadata_fields['required_weight']:
+        yarn_type_obj = db.query(YarnType).filter(
+            YarnType.weight.ilike(metadata_fields['required_weight'])
+        ).first()
+        if not yarn_type_obj:
+            # Create a new YarnType if it doesn't exist
+            yarn_type_obj = YarnType(
+                yarn_id=f"{metadata_fields['required_weight']}_generic_{pattern_id}",
+                yarn_name="Generic Yarn",
+                brand="Unknown",
+                weight=metadata_fields['required_weight'],
+                fiber="Unknown"
+            )
+            db.add(yarn_type_obj)
+        # Only add PatternSuggestsYarn if it doesn't already exist
+        existing_psy = db.query(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern_id,
+            PatternSuggestsYarn.yarn_id == yarn_type_obj.yarn_id
+        ).first()
+        if not existing_psy:
+            db_pattern_suggests_yarn = PatternSuggestsYarn(
+                pattern_id=pattern_id,
+                yarn_id=yarn_type_obj.yarn_id,
+                yardage_min=metadata_fields['yardage_min'],
+                yardage_max=metadata_fields['yardage_max'],
+                grams_min=metadata_fields['grams_min'],
+                grams_max=metadata_fields['grams_max']
+            )
+            db.add(db_pattern_suggests_yarn)
+    # If no yarn weight specified but yardage/grams are provided, create a generic yarn type
+    elif metadata_fields['yardage_min'] or metadata_fields['yardage_max'] or metadata_fields['grams_min'] or metadata_fields['grams_max']:
+        # Create a generic yarn type for patterns without specific weight
+        generic_yarn_id = f"generic_{pattern_id}"
+        generic_yarn = db.query(YarnType).filter(YarnType.yarn_id == generic_yarn_id).first()
+        if not generic_yarn:
+            generic_yarn = YarnType(
+                yarn_id=generic_yarn_id,
+                yarn_name="Generic Yarn",
+                brand="Unknown",
+                weight="Unknown",
+                fiber="Unknown"
+            )
+            db.add(generic_yarn)
+        existing_psy = db.query(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern_id,
+            PatternSuggestsYarn.yarn_id == generic_yarn_id
+        ).first()
+        if not existing_psy:
+            db_pattern_suggests_yarn = PatternSuggestsYarn(
+                pattern_id=pattern_id,
+                yarn_id=generic_yarn_id,
+                yardage_min=metadata_fields['yardage_min'],
+                yardage_max=metadata_fields['yardage_max'],
+                grams_min=metadata_fields['grams_min'],
+                grams_max=metadata_fields['grams_max']
+            )
+            db.add(db_pattern_suggests_yarn)
+    
+    # 4. Price handling is not needed for user-uploaded patterns since they're already owned
+    
+    # Link pattern to user (check if ownership already exists)
+    existing_ownership = db.query(OwnsPattern).filter(
+        OwnsPattern.user_id == user_id,
+        OwnsPattern.pattern_id == pattern_id
+    ).first()
+    if not existing_ownership:
+        db_owns = OwnsPattern(user_id=user_id, pattern_id=pattern_id)
+        db.add(db_owns)
+    
+    db.commit()
+    db.close()
+    
+    return {"pattern_id": pattern_id}
+
+@app.delete("/users/{user_id}/patterns/{pattern_id}/")
+def delete_user_pattern(user_id: int, pattern_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if pattern exists and is owned by the user
+    owns_pattern = db.query(OwnsPattern).filter(
+        OwnsPattern.user_id == user_id,
+        OwnsPattern.pattern_id == pattern_id
+    ).first()
+    
+    if not owns_pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found in user's collection")
+    
+    # Check if this is an imported pattern (has HasLink_Link entry)
+    has_link = db.query(HasLink_Link).filter(
+        HasLink_Link.pattern_id == pattern_id
+    ).first()
+    
+    if has_link:
+        # This is an imported pattern - users cannot delete imported patterns
+        db.close()
+        raise HTTPException(status_code=403, detail="Cannot delete imported patterns. You can only remove them from your collection.")
+    
+    # This is a user-uploaded pattern, delete the pattern and all related data
+    # First, delete related data in the correct order to avoid foreign key constraints
+    
+    # Delete yarn suggestions
+    db.query(PatternSuggestsYarn).filter(
+        PatternSuggestsYarn.pattern_id == pattern_id
+    ).delete()
+    
+    # Delete craft type requirements
+    db.query(RequiresCraftType).filter(
+        RequiresCraftType.pattern_id == pattern_id
+    ).delete()
+    
+    # Delete project type suitability
+    db.query(SuitableFor).filter(
+        SuitableFor.pattern_id == pattern_id
+    ).delete()
+    
+    # Delete tool requirements
+    db.query(PatternRequiresTool).filter(
+        PatternRequiresTool.pattern_id == pattern_id
+    ).delete()
+    
+    # Delete ownership relationships (for all users)
+    db.query(OwnsPattern).filter(
+        OwnsPattern.pattern_id == pattern_id
+    ).delete()
+    
+    # Finally, delete the pattern itself
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if pattern:
+        db.delete(pattern)
+    
+    db.commit()
+    db.close()
+    return {"message": "User-uploaded pattern and all related data deleted"}
+
+@app.post("/users/{user_id}/yarn/")
+def add_yarn(user_id: int, yarn: YarnCreate):
+    db = SessionLocal()
+    try:
+        # Check if user exists
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Generate a unique yarn_id (using hash of yarn details)
+        yarn_id = hashlib.sha256(f"{yarn.yarn_name}{yarn.brand}{yarn.weight}{yarn.fiber}".encode()).hexdigest()
+        
+        # Check if yarn type already exists
+        existing_yarn = db.query(YarnType).filter(YarnType.yarn_id == yarn_id).first()
+        if not existing_yarn:
+            db_yarn = YarnType(
+                yarn_id=yarn_id,
+                yarn_name=yarn.yarn_name,
+                brand=yarn.brand,
+                weight=yarn.weight,
+                fiber=yarn.fiber
+            )
+            db.add(db_yarn)
+            db.flush()  # Get the yarn_id without committing
+        
+        # Check if user already owns this yarn
+        existing_ownership = db.query(OwnsYarn).filter(
+            OwnsYarn.user_id == user_id,
+            OwnsYarn.yarn_id == yarn_id
+        ).first()
+        
+        if existing_ownership:
+            raise HTTPException(status_code=400, detail="User already owns this yarn")
+        
+        # Add to user's stash
+        db_owns = OwnsYarn(
+            user_id=user_id,
+            yarn_id=yarn_id,
+            yardage=yarn.yardage,
+            grams=yarn.grams
+        )
+        db.add(db_owns)
+        
+        # Commit all operations together
+        db.commit()
+        
+        return {"yarn_id": yarn_id}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding yarn: {str(e)}")
+    finally:
+        db.close()
+
+@app.get("/users/{user_id}/tools/")
+def get_user_tools(user_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all tools owned by the user
+    tools = db.query(Tool).join(OwnsTool).filter(OwnsTool.user_id == user_id).all()
+    
+    result = []
+    for tool in tools:
+        result.append({
+            "id": str(tool.tool_id),
+            "type": tool.type,
+            "size": tool.size
+        })
+    
+    db.close()
+    return result
+
+@app.post("/users/{user_id}/tools/")
+def add_tool(user_id: int, tool: ToolCreate):
+    db = SessionLocal()
+    try:
+        # Check if user exists
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if tool already exists
+        existing_tool = db.query(Tool).filter(
+            Tool.type == tool.type,
+            Tool.size == tool.size
+        ).first()
+        
+        if existing_tool:
+            # Tool already exists, check if user already owns it
+            existing_ownership = db.query(OwnsTool).filter(
+                OwnsTool.user_id == user_id,
+                OwnsTool.tool_id == existing_tool.tool_id
+            ).first()
+            
+            if existing_ownership:
+                # User already owns this tool
+                raise HTTPException(status_code=400, detail="You already own this tool")
+            
+            # Create ownership relationship for existing tool
+            db_owns = OwnsTool(user_id=user_id, tool_id=existing_tool.tool_id)
+            db.add(db_owns)
+            db.commit()
+            
+            return {"tool_id": existing_tool.tool_id}
+        else:
+            # Create new tool
+            db_tool = Tool(type=tool.type, size=tool.size)
+            db.add(db_tool)
+            db.flush()  # Get the tool_id without committing
+            
+            # Create the ownership relationship
+            db_owns = OwnsTool(user_id=user_id, tool_id=db_tool.tool_id)
+            db.add(db_owns)
+            
+            # Commit both operations together
+            db.commit()
+            
+            return {"tool_id": db_tool.tool_id}
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error adding tool: {str(e)}")
+        print(f"Tool data: type={tool.type}, size={tool.size}")
+        print(f"User ID: {user_id}")
+        raise HTTPException(status_code=500, detail=f"Error adding tool: {str(e)}")
+    finally:
+        db.close()
+
+@app.delete("/users/{user_id}/tools/{tool_id}")
+def delete_user_tool(user_id: int, tool_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if the tool exists and is owned by the user
+    owns_tool = db.query(OwnsTool).filter(
+        OwnsTool.user_id == user_id,
+        OwnsTool.tool_id == tool_id
+    ).first()
+    
+    if not owns_tool:
+        db.close()
+        raise HTTPException(status_code=404, detail="Tool not found or not owned by user")
+    
+    # Delete the ownership relationship
+    db.delete(owns_tool)
+    
+    # Check if any other users own this tool
+    other_owners = db.query(OwnsTool).filter(OwnsTool.tool_id == tool_id).count()
+    
+    # If no other users own this tool, delete the tool itself
+    if other_owners == 0:
+        tool = db.query(Tool).filter(Tool.tool_id == tool_id).first()
+        if tool:
+            db.delete(tool)
+    
+    db.commit()
+    db.close()
+    return {"message": "Tool deleted successfully"}
+
+@app.get("/patterns/", response_model=PaginatedPatternResponse)
+def get_all_patterns(
+    page: int = 1,
+    page_size: int = 30,
+    project_type: Optional[str] = None,
+    craft_type: Optional[str] = None,
+    weight: Optional[str] = None,
+    designer: Optional[str] = None,
+    uploaded_only: Optional[bool] = None,
+    shuffle: Optional[bool] = None,
+    free_only: Optional[bool] = None,
+    user_id: Optional[int] = None
+):
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 30
+    if page_size > 100:
+        page_size = 100
+    db = SessionLocal()
+    
+    # Start with all patterns
+    query = db.query(Pattern)
+    
+    # Apply filters
+    if project_type:
+        query = query.join(SuitableFor).join(ProjectType).filter(
+            ProjectType.name.ilike(f"%{project_type}%")
+        )
+    
+    if craft_type:
+        query = query.join(RequiresCraftType).join(CraftType).filter(
+            CraftType.name.ilike(f"%{craft_type}%")
+        )
+    
+    if weight:
+        query = query.join(PatternSuggestsYarn).join(YarnType).filter(
+            YarnType.weight.ilike(f"%{weight}%")
+        )
+    
+    if designer:
+        query = query.filter(Pattern.designer.ilike(f"%{designer}%"))
+    
+    if uploaded_only:
+        if not user_id:
+            db.close()
+            raise HTTPException(status_code=400, detail="user_id is required when uploaded_only is true")
+        # Only show patterns uploaded by this user
+        query = query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+    
+    # Get total count for pagination
+    total_count = query.count()
+    
+    # Apply pagination - ensure page_size is not zero
+    if page_size <= 0:
+        page_size = 30
+    offset = (page - 1) * page_size
+    patterns = query.limit(page_size).offset(offset).all()
+    
+    # Build response with related data
+    result = []
+    for pattern in patterns:
+        # Get craft type
+        craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+            RequiresCraftType.pattern_id == pattern.pattern_id
+        ).first()
+        craft_type_name = craft_type_result[0] if craft_type_result else None
+        
+        # Get project type
+        project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+            SuitableFor.pattern_id == pattern.pattern_id
+        ).first()
+        project_type_name = project_type_result[0] if project_type_result else None
+        
+        # Get yarn weight and yardage/grams from PatternSuggestsYarn
+        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern.pattern_id
+        ).first()
+        yarn_weight = yarn_result[0] if yarn_result else None
+        yardage_min = yarn_result[1] if yarn_result else None
+        yardage_max = yarn_result[2] if yarn_result else None
+        grams_min = yarn_result[3] if yarn_result else None
+        grams_max = yarn_result[4] if yarn_result else None
+        
+        # Get pattern link and price
+        link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+            HasLink_Link.pattern_id == pattern.pattern_id
+        ).first()
+        
+        # For imported patterns, use the HasLink_Link price and URL
+        if link_result:
+            pattern_url = link_result[0]  # Get the URL
+            # Format price for display
+            price_value = link_result[1]
+            if price_value is not None:
+                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                    price_display = "Free"
+                else:
+                    # Keep the original price string as it may contain currency info
+                    price_display = price_value
+            else:
+                price_display = None
+        else:
+            # This is a user-uploaded pattern, no price or URL
+            pattern_url = None
+            price_display = None
+        
+        result.append(PatternResponse(
+            pattern_id=pattern.pattern_id,
+            name=pattern.name,
+            designer=pattern.designer,
+            image=pattern.image if pattern.image is not None else "/placeholder.svg",
+            pdf_file=pattern.pdf_file,
+            yardage_min=yardage_min,
+            yardage_max=yardage_max,
+            grams_min=grams_min,
+            grams_max=grams_max,
+            project_type=project_type_name,
+            craft_type=craft_type_name,
+            required_weight=yarn_weight,
+            pattern_url=pattern_url,
+            price=price_display
+        ))
+    
+    db.close()
+    
+    # Filter for free patterns if requested (always before shuffle)
+    if free_only:
+        def is_free(p):
+            price = str(p.price).strip().lower() if p.price is not None else ''
+            return price in ['free', '0', '0.0', '$0.00', '0.0 gbp', '0.0 dkk', '0.0 usd']
+        result = [p for p in result if is_free(p)]
+
+    # Shuffle results if requested (after filtering)
+    if shuffle:
+        random.shuffle(result)
+    
+    # Calculate pagination info - ensure page_size is not zero to prevent division by zero
+    if page_size <= 0:
+        page_size = 30
+    total_pages = (total_count + page_size - 1) // page_size
+    
+    return PaginatedPatternResponse(
+        patterns=result,
+        pagination={
+            "page": page,
+            "page_size": page_size,
+            "total": total_count,
+            "pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    )
+
+@app.get("/test")
+def test_endpoint():
+    return {"message": "Backend is working!"}
+
+@app.get("/test-patterns")
+def test_patterns():
+    db = SessionLocal()
+    try:
+        patterns = db.query(Pattern).limit(5).all()
+        result = []
+        for p in patterns:
+            result.append({
+                "pattern_id": p.pattern_id,
+                "name": p.name,
+                "designer": p.designer
+            })
+        db.close()
+        return {"patterns": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/test-craft-types")
+def test_craft_types():
+    db = SessionLocal()
+    try:
+        craft_types = db.query(CraftType).all()
+        result = []
+        for ct in craft_types:
+            # Count patterns for this craft type
+            pattern_count = db.query(RequiresCraftType).filter(
+                RequiresCraftType.craft_type_id == ct.craft_type_id
+            ).count()
+            result.append({
+                "craft_type_id": ct.craft_type_id,
+                "name": ct.name,
+                "pattern_count": pattern_count
+            })
+        db.close()
+        return {"craft_types": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/test-link-prices")
+def test_link_prices():
+    db = SessionLocal()
+    try:
+        # Get some sample patterns with their link prices
+        links = db.query(HasLink_Link).limit(10).all()
+        result = []
+        for link in links:
+            result.append({
+                "pattern_id": link.pattern_id,
+                "url": link.url,
+                "price": link.price,
+                "source": link.source
+            })
+        db.close()
+        return {"links": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/test-specific-patterns")
+def test_specific_patterns():
+    db = SessionLocal()
+    try:
+        # Check specific patterns that were showing price 0.0
+        pattern_ids = [167, 278, 296, 313, 332]
+        result = []
+        for pid in pattern_ids:
+            # Get pattern info
+            pattern = db.query(Pattern).filter(Pattern.pattern_id == pid).first()
+            if pattern:
+                # Get HasLink_Link entry
+                link = db.query(HasLink_Link).filter(HasLink_Link.pattern_id == pid).first()
+                result.append({
+                    "pattern_id": pid,
+                    "name": pattern.name,
+                    "has_link_entry": link is not None,
+                    "link_price": link.price if link else None,
+                    "link_url": link.url if link else None
+                })
+        db.close()
+        return {"patterns": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.post("/upload-pdf/{pattern_id}")
+async def upload_pdf(pattern_id: int, file: UploadFile = File(...)):
+    """Upload a PDF file for a specific pattern"""
+    db = SessionLocal()
+    
+    # Check if pattern exists
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found")
+    
+    # Validate file type
+    if not file.filename.lower().endswith('.pdf'):
+        db.close()
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    # Generate unique filename
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"pattern_{pattern_id}_{secrets.token_hex(8)}{file_extension}"
+    file_path = os.path.join(PDF_UPLOADS_DIR, unique_filename)
+    
+    try:
+        # Save the file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Update pattern with PDF filename
+        pattern.pdf_file = unique_filename
+        db.commit()
+        
+        db.close()
+        return {"message": "PDF uploaded successfully", "filename": unique_filename}
+    
+    except Exception as e:
+        db.close()
+        # Clean up file if it was created
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to upload PDF: {str(e)}")
+
+@app.get("/download-pdf/{pattern_id}")
+async def download_pdf(pattern_id: int):
+    """Download a PDF file for a specific pattern"""
+    db = SessionLocal()
+    
+    # Check if pattern exists and has a PDF
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern or not pattern.pdf_file:
+        db.close()
+        raise HTTPException(status_code=404, detail="PDF not found for this pattern")
+    
+    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    if not os.path.exists(file_path):
+        db.close()
+        raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    db.close()
+    return FileResponse(
+        path=file_path,
+        filename=pattern.pdf_file,
+        media_type='application/pdf'
+    )
+
+@app.get("/view-pdf/{pattern_id}")
+async def view_pdf(pattern_id: int):
+    """View a PDF file inline in the browser"""
+    db = SessionLocal()
+    
+    # Check if pattern exists and has a PDF
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern or not pattern.pdf_file:
+        db.close()
+        raise HTTPException(status_code=404, detail="PDF not found for this pattern")
+    
+    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    if not os.path.exists(file_path):
+        db.close()
+        raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    db.close()
+    return FileResponse(
+        path=file_path,
+        media_type='application/pdf',
+        headers={'Content-Disposition': 'inline'}
+    )
+
+@app.get("/debug/free-patterns")
+def debug_free_patterns():
+    db = SessionLocal()
+    patterns = db.query(Pattern).all()
+    result = []
+    for pattern in patterns:
+        # Get pattern link and price
+        link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+            HasLink_Link.pattern_id == pattern.pattern_id
+        ).first()
+        if link_result:
+            link_price = link_result[1]
+        else:
+            link_price = None
+        if link_price is None or link_price == 0 or link_price == 0.0:
+            price_str = "Free"
+        else:
+            price_str = str(link_price)
+        result.append({
+            "pattern_id": pattern.pattern_id,
+            "name": pattern.name,
+            "link_price": link_price,
+            "price_str": price_str
+        })
+    db.close()
+    # Only return those marked as Free
+    return [p for p in result if p["price_str"] == "Free"]
+
+@app.get("/debug/patterns-yardage")
+def debug_patterns_yardage():
+    db = SessionLocal()
+    try:
+        # Get all patterns with their yardage info
+        patterns = db.query(Pattern).all()
+        result = []
+        
+        for pattern in patterns:
+            # Get yarn weight and yardage/grams from PatternSuggestsYarn
+            yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
+                PatternSuggestsYarn.pattern_id == pattern.pattern_id
+            ).first()
+            
+            result.append({
+                "pattern_id": pattern.pattern_id,
+                "name": pattern.name,
+                "has_yarn_info": yarn_result is not None,
+                "weight": yarn_result[0] if yarn_result else None,
+                "yardage_min": yarn_result[1] if yarn_result else None,
+                "yardage_max": yarn_result[2] if yarn_result else None,
+                "grams_min": yarn_result[3] if yarn_result else None,
+                "grams_max": yarn_result[4] if yarn_result else None
+            })
+        
+        db.close()
+        return {"patterns": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/patterns/stash-match/{user_id}", response_model=PaginatedPatternResponse)
+def get_stash_matching_patterns(
+    user_id: int,
+    page: int = 1,
+    page_size: int = 30
+):
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 30
+    if page_size > 100:
+        page_size = 100
+    db = SessionLocal()
+    
+    # Get user's yarn stash
+    stash_query = db.query(OwnsYarn, YarnType).join(YarnType).filter(OwnsYarn.user_id == user_id)
+    stash_items = stash_query.all()
+    
+    if not stash_items:
+        db.close()
+        return PaginatedPatternResponse(
+            patterns=[],
+            pagination={
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "pages": 0,
+                "has_next": False,
+                "has_prev": False
+            }
+        )
+    
+    # Calculate total yardage by weight class
+    stash_yardage_by_weight = {}
+    for stash_item, yarn_type in stash_items:
+        weight = yarn_type.weight.lower()
+        if weight not in stash_yardage_by_weight:
+            stash_yardage_by_weight[weight] = 0
+        stash_yardage_by_weight[weight] += stash_item.yardage
+    
+    # Get ALL patterns (not just those with PatternSuggestsYarn entries)
+    all_patterns = db.query(Pattern).all()
+    
+    matching_patterns = []
+    total_matching = 0
+    
+    for pattern in all_patterns:
+        # Get yarn weight and yardage for this pattern
+        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max).join(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern.pattern_id
+        ).first()
+        
+        # If no yarn data found in PatternSuggestsYarn, skip this pattern (can't determine if it matches)
+        if not yarn_result:
+            continue
+        else:
+            pattern_weight = yarn_result[0].lower() if yarn_result[0] else None
+            yardage_min = yarn_result[1]
+            yardage_max = yarn_result[2]
+        
+        if not pattern_weight:
+            continue
+            
+        # Check if user has yarn in this weight class or compatible weight
+        stash_yardage = 0
+        
+        # Direct match
+        if pattern_weight in stash_yardage_by_weight:
+            stash_yardage = stash_yardage_by_weight[pattern_weight]
+        else:
+            # Check for compatible weights
+            compatible_weights = get_compatible_weights(pattern_weight)
+            for compatible_weight in compatible_weights:
+                if compatible_weight in stash_yardage_by_weight:
+                    stash_yardage += stash_yardage_by_weight[compatible_weight]
+        
+        if stash_yardage == 0:
+            continue
+            
+        # Check if stash yardage matches pattern requirements
+        matches = False
+        if yardage_min is not None and yardage_max is not None:
+            # Both min and max are present - stash must be at least as much as max
+            if stash_yardage >= yardage_max:
+                matches = True
+        elif yardage_max is not None:
+            # If only max is present, stash must be at least as much as max
+            if stash_yardage >= yardage_max:
+                matches = True
+        elif yardage_min is not None:
+            # If only min is present, stash must be at least as much as min
+            if stash_yardage >= yardage_min:
+                matches = True
+        else:
+            # No yardage info - can't determine match
+            continue
+        
+        if matches:
+            total_matching += 1
+            
+            # Apply pagination - only process patterns for current page
+            if total_matching <= (page - 1) * page_size:
+                continue
+            if len(matching_patterns) >= page_size:
+                continue
+                
+            # Get additional pattern info
+            craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+                RequiresCraftType.pattern_id == pattern.pattern_id
+            ).first()
+            craft_type_name = craft_type_result[0] if craft_type_result else None
+            
+            project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+                SuitableFor.pattern_id == pattern.pattern_id
+            ).first()
+            project_type_name = project_type_result[0] if project_type_result else None
+            
+            # Get pattern link and price
+            link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+                HasLink_Link.pattern_id == pattern.pattern_id
+            ).first()
+            
+            if link_result:
+                pattern_url = link_result[0]
+                # Format price for display
+                price_value = link_result[1]
+                if price_value is not None:
+                    if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                        price_display = "Free"
+                    else:
+                        # Keep the original price string as it may contain currency info
+                        price_display = price_value
+                else:
+                    price_display = None
+            else:
+                # This is a user-uploaded pattern, no price or URL
+                pattern_url = None
+                price_display = None
+            
+            matching_patterns.append(PatternResponse(
+                pattern_id=pattern.pattern_id,
+                name=pattern.name,
+                designer=pattern.designer,
+                image=pattern.image if pattern.image is not None else "/placeholder.svg",
+                pdf_file=pattern.pdf_file,
+                yardage_min=yardage_min,
+                yardage_max=yardage_max,
+                grams_min=None,  # Could add this if needed
+                grams_max=None,  # Could add this if needed
+                project_type=project_type_name,
+                craft_type=craft_type_name,
+                required_weight=pattern_weight,
+                pattern_url=pattern_url,
+                price=price_display
+            ))
+    
+    db.close()
+    
+    # Calculate pagination info - ensure page_size is not zero to prevent division by zero
+    if page_size <= 0:
+        page_size = 30
+    total_pages = (total_matching + page_size - 1) // page_size
+    
+    return PaginatedPatternResponse(
+        patterns=matching_patterns,
+        pagination={
+            "page": page,
+            "page_size": page_size,
+            "total": total_matching,
+            "pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    )
+
+def get_compatible_weights(pattern_weight):
+    """Return list of compatible yarn weights for substitution"""
+    weight_mapping = {
+        # Light Fingering can be substituted with Fingering
+        "light fingering": ["fingering (14 wpi)", "fingering"],
+        # Fingering can be substituted with Light Fingering and each other
+        "fingering (14 wpi)": ["light fingering", "fingering"],
+        "fingering": ["light fingering", "fingering (14 wpi)"],
+        # Sport can be substituted with DK or Fingering
+        "sport": ["dk", "worsted (9 wpi)", "fingering (14 wpi)", "fingering"],
+        # DK can be substituted with Sport or Worsted
+        "dk": ["sport", "worsted (9 wpi)", "worsted"],
+        # Worsted can be substituted with DK or Aran
+        "worsted (9 wpi)": ["dk", "aran", "worsted"],
+        "worsted": ["dk", "aran", "worsted (9 wpi)"],
+        # Aran can be substituted with Worsted or Bulky
+        "aran": ["worsted (9 wpi)", "worsted", "bulky"],
+        # Bulky can be substituted with Aran or Super Bulky
+        "bulky": ["aran", "super bulky"],
+        # Super Bulky can be substituted with Bulky
+        "super bulky": ["bulky"]
+    }
+    return weight_mapping.get(pattern_weight, [])
+
+@app.get("/users/{user_id}/yarn/")
+def get_user_yarn(user_id: int):
+    db = SessionLocal()
+    try:
+        stash_query = db.query(OwnsYarn, YarnType).join(YarnType).filter(OwnsYarn.user_id == user_id)
+        stash_items = stash_query.all()
+        
+        result = []
+        for stash_item, yarn_type in stash_items:
+            result.append({
+                "yarn_id": yarn_type.yarn_id,
+                "yarn_name": yarn_type.yarn_name,
+                "brand": yarn_type.brand,
+                "weight": yarn_type.weight,
+                "fiber": yarn_type.fiber,
+                "yardage": stash_item.yardage,
+                "grams": stash_item.grams
+            })
+        
+        db.close()
+        return {"yarn": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/debug/yarn-types")
+def debug_yarn_types():
+    db = SessionLocal()
+    try:
+        yarn_types = db.query(YarnType).limit(10).all()
+        result = []
+        for yt in yarn_types:
+            result.append({
+                "yarn_id": yt.yarn_id,
+                "yarn_name": yt.yarn_name,
+                "brand": yt.brand,
+                "weight": yt.weight,
+                "fiber": yt.fiber
+            })
+        db.close()
+        return {"yarn_types": result}
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/debug/user-patterns/{user_id}")
+def debug_user_patterns(user_id: int):
+    db = SessionLocal()
+    
+    # Get patterns owned by the user
+    user_patterns = db.query(Pattern).join(OwnsPattern).filter(OwnsPattern.user_id == user_id).all()
+    
+    result = []
+    for pattern in user_patterns:
+        # Get yarn weight and yardage/grams from PatternSuggestsYarn
+        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern.pattern_id
+        ).first()
+        
+        result.append({
+            "pattern_id": pattern.pattern_id,
+            "name": pattern.name,
+            "designer": pattern.designer,
+            "yarn_weight": yarn_result[0] if yarn_result else None,
+            "yardage_min": yarn_result[1] if yarn_result else None,
+            "yardage_max": yarn_result[2] if yarn_result else None,
+            "grams_min": yarn_result[3] if yarn_result else None,
+            "grams_max": yarn_result[4] if yarn_result else None,
+            "has_yarn_data": yarn_result is not None
+        })
+    
+    db.close()
+    return result
+
+@app.put("/users/{user_id}/yarn/{yarn_id}")
+def update_yarn(user_id: int, yarn_id: str, yarn: YarnCreate):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if the yarn exists in user's stash
+    owns_yarn = db.query(OwnsYarn).filter(
+        OwnsYarn.user_id == user_id,
+        OwnsYarn.yarn_id == yarn_id
+    ).first()
+    
+    if not owns_yarn:
+        db.close()
+        raise HTTPException(status_code=404, detail="Yarn not found in user's stash")
+    
+    # Update the yarn amounts
+    owns_yarn.yardage = yarn.yardage
+    owns_yarn.grams = yarn.grams
+    
+    db.commit()
+    db.close()
+    
+    return {"message": "Yarn updated successfully"}
+
+# Favorites endpoints
+@app.post("/users/{user_id}/favorites/{pattern_id}/")
+def add_favorite(user_id: int, pattern_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if pattern exists
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found")
+    
+    # Check if already favorited
+    existing_favorite = db.query(FavoritePattern).filter(
+        FavoritePattern.user_id == user_id,
+        FavoritePattern.pattern_id == pattern_id
+    ).first()
+    if existing_favorite:
+        db.close()
+        raise HTTPException(status_code=400, detail="Pattern already favorited")
+    
+    # Add to favorites
+    favorite = FavoritePattern(user_id=user_id, pattern_id=pattern_id)
+    db.add(favorite)
+    db.commit()
+    db.close()
+    
+    return {"message": "Pattern added to favorites"}
+
+@app.delete("/users/{user_id}/favorites/{pattern_id}/")
+def remove_favorite(user_id: int, pattern_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if pattern exists
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found")
+    
+    # Check if favorited
+    favorite = db.query(FavoritePattern).filter(
+        FavoritePattern.user_id == user_id,
+        FavoritePattern.pattern_id == pattern_id
+    ).first()
+    if not favorite:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not in favorites")
+    
+    # Remove from favorites
+    db.delete(favorite)
+    db.commit()
+    db.close()
+    
+    return {"message": "Pattern removed from favorites"}
+
+@app.get("/users/{user_id}/favorites/", response_model=PaginatedPatternResponse)
+def get_user_favorites(
+    user_id: int,
+    page: int = 1,
+    page_size: int = 30
+):
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 30
+    if page_size > 100:
+        page_size = 100
+    
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get favorited patterns
+    favorites_query = db.query(Pattern).join(FavoritePattern).filter(
+        FavoritePattern.user_id == user_id
+    )
+    
+    # Count total
+    total_count = favorites_query.count()
+    
+    # Apply pagination
+    result = favorites_query.offset((page - 1) * page_size).limit(page_size).all()
+    
+    # Build response with related data
+    patterns_response = []
+    for pattern in result:
+        # Get craft type
+        craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+            RequiresCraftType.pattern_id == pattern.pattern_id
+        ).first()
+        craft_type_name = craft_type_result[0] if craft_type_result else None
+        
+        # Get project type
+        project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+            SuitableFor.pattern_id == pattern.pattern_id
+        ).first()
+        project_type_name = project_type_result[0] if project_type_result else None
+        
+        # Get yarn info
+        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max).join(PatternSuggestsYarn).filter(
+            PatternSuggestsYarn.pattern_id == pattern.pattern_id
+        ).first()
+        
+        pattern_weight = None
+        yardage_min = None
+        yardage_max = None
+        if yarn_result:
+            pattern_weight = yarn_result[0].lower() if yarn_result[0] else None
+            yardage_min = yarn_result[1]
+            yardage_max = yarn_result[2]
+        
+        # Get pattern link and price
+        link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+            HasLink_Link.pattern_id == pattern.pattern_id
+        ).first()
+        
+        if link_result:
+            pattern_url = link_result[0]
+            price_value = link_result[1]
+            if price_value is not None:
+                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                    price_display = "Free"
+                else:
+                    price_display = price_value
+            else:
+                price_display = None
+        else:
+            pattern_url = None
+            price_display = None
+        
+        patterns_response.append(PatternResponse(
+            pattern_id=pattern.pattern_id,
+            name=pattern.name,
+            designer=pattern.designer,
+            image=pattern.image if pattern.image is not None else "/placeholder.svg",
+            pdf_file=pattern.pdf_file,
+            yardage_min=yardage_min,
+            yardage_max=yardage_max,
+            grams_min=None,
+            grams_max=None,
+            project_type=project_type_name,
+            craft_type=craft_type_name,
+            required_weight=pattern_weight,
+            pattern_url=pattern_url,
+            price=price_display
+        ))
+    
+    db.close()
+    
+    # Calculate pagination info
+    total_pages = (total_count + page_size - 1) // page_size
+    
+    return PaginatedPatternResponse(
+        patterns=patterns_response,
+        pagination={
+            "page": page,
+            "page_size": page_size,
+            "total": total_count,
+            "pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    )
+
+@app.get("/users/{user_id}/favorites/{pattern_id}/check/")
+def check_favorite(user_id: int, pattern_id: int):
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if pattern exists
+    pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
+    if not pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found")
+    
+    # Check if favorited
+    favorite = db.query(FavoritePattern).filter(
+        FavoritePattern.user_id == user_id,
+        FavoritePattern.pattern_id == pattern_id
+    ).first()
+    
+    db.close()
+    
+    return {"is_favorited": favorite is not None}
+
+@app.get("/patterns/random/", response_model=List[PatternResponse])
+def get_random_patterns():
+    db = SessionLocal()
+    try:
+        all_patterns = db.query(Pattern).all()
+        if len(all_patterns) <= 3:
+            selected_patterns = all_patterns
+        else:
+            selected_patterns = random.sample(all_patterns, 3)
+        result = []
+        for pattern in selected_patterns:
+            # Get craft type
+            craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
+                RequiresCraftType.pattern_id == pattern.pattern_id
+            ).first()
+            craft_type_name = craft_type_result[0] if craft_type_result else None
+
+            # Get project type
+            project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
+                SuitableFor.pattern_id == pattern.pattern_id
+            ).first()
+            project_type_name = project_type_result[0] if project_type_result else None
+
+            # Get yarn weight and yardage/grams from PatternSuggestsYarn
+            yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max, PatternSuggestsYarn.grams_min, PatternSuggestsYarn.grams_max).join(PatternSuggestsYarn).filter(
+                PatternSuggestsYarn.pattern_id == pattern.pattern_id
+            ).first()
+            yarn_weight = yarn_result[0] if yarn_result else None
+            yardage_min = yarn_result[1] if yarn_result else None
+            yardage_max = yarn_result[2] if yarn_result else None
+            grams_min = yarn_result[3] if yarn_result else None
+            grams_max = yarn_result[4] if yarn_result else None
+
+            # Get pattern link and price
+            link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
+                HasLink_Link.pattern_id == pattern.pattern_id
+            ).first()
+            if link_result:
+                pattern_url = link_result[0]
+                price_value = link_result[1]
+                if price_value is not None:
+                    if str(price_value).lower() == 'free' or str(price_value) == '0' or str(price_value) == '0.0':
+                        price_display = "Free"
+                    else:
+                        price_display = price_value
+                else:
+                    price_display = None
+            else:
+                pattern_url = None
+                price_display = None
+
+            result.append(PatternResponse(
+                pattern_id=pattern.pattern_id,
+                name=pattern.name,
+                designer=pattern.designer,
+                image=pattern.image if pattern.image is not None else "/placeholder.svg",
+                pdf_file=pattern.pdf_file,
+                yardage_min=yardage_min,
+                yardage_max=yardage_max,
+                grams_min=grams_min,
+                grams_max=grams_max,
+                project_type=project_type_name,
+                craft_type=craft_type_name,
+                required_weight=yarn_weight,
+                pattern_url=pattern_url,
+                price=price_display
+            ))
+        db.close()
+        return result
+    except Exception as e:
+        db.close()
+        raise HTTPException(status_code=500, detail=f"Failed to get random patterns: {str(e)}")
+
+# To run: uvicorn app:app --reload
