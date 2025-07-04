@@ -12,22 +12,41 @@ import re
 import random
 import os
 
-DATABASE_URL = "sqlite:///StitchMatch.db"
+# Database configuration - supports both SQLite (local) and PostgreSQL (cloud)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///StitchMatch.db")
+
+# Handle Railway's PostgreSQL URL format
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Create PDF uploads directory if it doesn't exist
 PDF_UPLOADS_DIR = "pdf_uploads"
 os.makedirs(PDF_UPLOADS_DIR, exist_ok=True)
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Create engine with appropriate connect_args based on database type
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# Create all tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3002", "http://192.168.1.95:3000"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3002", 
+        "http://192.168.1.95:3000",
+        "https://*.railway.app",  # Allow Railway domains
+        "https://*.vercel.app",   # Allow Vercel domains
+        "https://*.render.com",   # Allow Render domains
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

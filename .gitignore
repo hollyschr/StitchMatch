@@ -1,3 +1,14 @@
+# PDF uploads
+pdf_uploads/
+
+# Backend importers and utility scripts (private)
+import_specific_project_types.py
+crochet_importer_optimized.py
+run_optimized_import.py
+crochet_importer_fixed.py
+update_db_schema.py
+test_pagination.py
+
 # Python
 __pycache__/
 *.py[cod]
