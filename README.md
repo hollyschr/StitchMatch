@@ -20,6 +20,8 @@ A full-stack web application for managing and browsing patterns using a FastAPI 
    uvicorn app:app --host 0.0.0.0 --port 8080 --reload
    ```
    The API will be available at [http://127.0.0.1:8080](http://127.0.0.1:8080)
+   
+   **API Documentation**: [http://127.0.0.1:8080/docs](http://127.0.0.1:8080/docs) (Swagger UI)
 
 ## Frontend (React + Vite)
 
