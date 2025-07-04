@@ -923,6 +923,14 @@ def test_database():
             "database_url": DATABASE_URL[:20] + "..." if DATABASE_URL else "Not set"
         }
 
+@app.get("/debug-env")
+def debug_environment():
+    """Debug environment variables"""
+    return {
+        "database_url": DATABASE_URL[:50] + "..." if DATABASE_URL else "Not set",
+        "database_type": "PostgreSQL" if DATABASE_URL and "postgres" in DATABASE_URL else "SQLite" if DATABASE_URL and "sqlite" in DATABASE_URL else "Unknown"
+    }
+
 @app.get("/test-patterns")
 def test_patterns():
     db = SessionLocal()
