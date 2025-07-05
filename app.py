@@ -77,8 +77,15 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now
-    allow_credentials=False,  # Must be False when allow_origins=["*"]
+    allow_origins=[
+        "https://stitch-match.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://192.168.1.95:3003"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1242,7 +1249,39 @@ def get_stash_matching_patterns(
     # Get stash weights for filtering
     stash_weights = list(stash_yardage_by_weight.keys())
     
-    # Build the base query with all necessary JOINs
+    # First, get the pattern IDs that match the weight criteria
+    pattern_ids_query = db.query(
+        Pattern.pattern_id
+    ).join(
+        PatternSuggestsYarn, Pattern.pattern_id == PatternSuggestsYarn.pattern_id
+    ).join(
+        YarnType, PatternSuggestsYarn.yarn_id == YarnType.yarn_id
+    ).filter(
+        func.lower(YarnType.weight).in_(compatible_weights_lower)
+    ).distinct()
+    
+    # Apply uploaded_only filter to pattern IDs
+    if uploaded_only:
+        pattern_ids_query = pattern_ids_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+    
+    # Get the pattern IDs
+    matching_pattern_ids = [row[0] for row in pattern_ids_query.all()]
+    
+    if not matching_pattern_ids:
+        db.close()
+        return PaginatedPatternResponse(
+            patterns=[],
+            pagination={
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "pages": 0,
+                "has_next": False,
+                "has_prev": False
+            }
+        )
+    
+    # Now get the full pattern data for these IDs
     base_query = db.query(
         Pattern.pattern_id,
         Pattern.name,
@@ -1270,6 +1309,8 @@ def get_stash_matching_patterns(
         ProjectType, SuitableFor.project_type_id == ProjectType.project_type_id
     ).outerjoin(
         HasLink_Link, Pattern.pattern_id == HasLink_Link.pattern_id
+    ).filter(
+        Pattern.pattern_id.in_(matching_pattern_ids)
     )
     
     # Apply uploaded_only filter
@@ -1287,14 +1328,8 @@ def get_stash_matching_patterns(
     # Convert to lowercase for case-insensitive matching
     compatible_weights_lower = [w.lower() for w in compatible_weights]
     
-    # Filter patterns by compatible weights
-    base_query = base_query.filter(
-        func.lower(YarnType.weight).in_(compatible_weights_lower)
-    )
-    
-    # Get total count for pagination
-    total_count_query = base_query.with_entities(func.count(Pattern.pattern_id))
-    total_matching = total_count_query.scalar()
+    # Get total count for pagination (use the pattern IDs we already found)
+    total_matching = len(matching_pattern_ids)
     
     if total_matching == 0:
         db.close()
@@ -1317,9 +1352,17 @@ def get_stash_matching_patterns(
     # Execute the query
     results = base_query.all()
     
+    # Deduplicate results by pattern_id
+    seen_pattern_ids = set()
+    unique_results = []
+    for result in results:
+        if result.pattern_id not in seen_pattern_ids:
+            seen_pattern_ids.add(result.pattern_id)
+            unique_results.append(result)
+    
     # Process results and apply yardage filtering
     matching_patterns = []
-    for result in results:
+    for result in unique_results:
         pattern_weight = result.weight.lower() if result.weight else None
         yardage_min = result.yardage_min
         yardage_max = result.yardage_max
