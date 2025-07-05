@@ -904,6 +904,7 @@ const Search = () => {
                       showFavoriteButton={true}
                       isFavorited={favoritedPatterns.has(pattern.pattern_id)}
                       onToggleFavorite={handleToggleFavorite}
+                      showDownloadButton={true}
                     />
                   ))}
                 </div>
