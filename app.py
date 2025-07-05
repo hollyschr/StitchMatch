@@ -39,17 +39,8 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:3002", 
-        "http://192.168.1.95:3000",
-        "https://*.railway.app",  # Allow Railway domains
-        "https://*.vercel.app",   # Allow Vercel domains
-        "https://stitch-match.vercel.app",  # Specific Vercel domain
-        "https://stitch-match-*.vercel.app",  # Preview deployments
-        "https://*.render.com",   # Allow Render domains
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for now
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
