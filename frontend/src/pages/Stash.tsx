@@ -94,6 +94,8 @@ const Stash = () => {
         })) : [];
         console.log('Transformed yarn data:', transformedYarn);
         setYarnStash(transformedYarn);
+        // Save to localStorage for other components to use
+        localStorage.setItem('yarnStash', JSON.stringify(transformedYarn));
       }
     } catch (error) {
       console.error('Error fetching yarn stash:', error);
@@ -149,7 +151,9 @@ const Stash = () => {
           yardage: newYarn.yardage,
           grams: newYarn.grams
         };
-        setYarnStash([...yarnStash, transformedYarn]);
+        const updatedYarnStash = [...yarnStash, transformedYarn];
+        setYarnStash(updatedYarnStash);
+        localStorage.setItem('yarnStash', JSON.stringify(updatedYarnStash));
         setIsYarnDialogOpen(false);
         event.currentTarget.reset();
         toast({ title: 'Yarn added successfully!' });
@@ -184,7 +188,9 @@ const Stash = () => {
       });
 
       if (response.ok) {
-        setYarnStash(yarnStash.map(yarn => yarn.id === editingYarn.id ? updatedYarn : yarn));
+        const updatedYarnStash = yarnStash.map(yarn => yarn.id === editingYarn.id ? updatedYarn : yarn);
+        setYarnStash(updatedYarnStash);
+        localStorage.setItem('yarnStash', JSON.stringify(updatedYarnStash));
         setIsEditYarnDialogOpen(false);
         setEditingYarn(null);
         toast({ title: 'Yarn updated successfully!' });
@@ -264,7 +270,9 @@ const Stash = () => {
       method: 'DELETE',
     })
       .then(() => {
-        setYarnStash(yarnStash.filter(yarn => yarn.id !== id));
+        const updatedYarnStash = yarnStash.filter(yarn => yarn.id !== id);
+        setYarnStash(updatedYarnStash);
+        localStorage.setItem('yarnStash', JSON.stringify(updatedYarnStash));
         toast({ title: 'Yarn removed successfully!' });
       })
       .catch((error) => {
