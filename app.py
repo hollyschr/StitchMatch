@@ -1273,6 +1273,17 @@ def get_stash_matching_patterns(
     # Get stash weights for filtering
     stash_weights = list(stash_yardage_by_weight.keys())
     
+    # Filter by stash weights (including compatible weights)
+    compatible_weights = set()
+    for stash_weight in stash_weights:
+        compatible_weights.add(stash_weight)
+        # Add compatible weights
+        compatibles = get_compatible_weights(stash_weight)
+        compatible_weights.update(compatibles)
+    
+    # Convert to lowercase for case-insensitive matching
+    compatible_weights_lower = [w.lower() for w in compatible_weights]
+    
     # First, get the pattern IDs that match the weight criteria
     pattern_ids_query = db.query(
         Pattern.pattern_id
@@ -1340,17 +1351,6 @@ def get_stash_matching_patterns(
     # Apply uploaded_only filter
     if uploaded_only:
         base_query = base_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
-    
-    # Filter by stash weights (including compatible weights)
-    compatible_weights = set()
-    for stash_weight in stash_weights:
-        compatible_weights.add(stash_weight)
-        # Add compatible weights
-        compatibles = get_compatible_weights(stash_weight)
-        compatible_weights.update(compatibles)
-    
-    # Convert to lowercase for case-insensitive matching
-    compatible_weights_lower = [w.lower() for w in compatible_weights]
     
     # Get total count for pagination (use the pattern IDs we already found)
     total_matching = len(matching_pattern_ids)
