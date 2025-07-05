@@ -79,7 +79,7 @@ const Stash = () => {
 
   const fetchYarnStash = async (userId: number) => {
     try {
-      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${userId}/yarn/`);
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${userId}/yarn/`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the frontend interface
@@ -102,7 +102,7 @@ const Stash = () => {
 
   const fetchTools = async (userId: number) => {
     try {
-      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${userId}/tools/`);
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${userId}/tools/`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the frontend interface
@@ -132,7 +132,7 @@ const Stash = () => {
       grams: parseInt(formData.get('grams') as string),
     };
 
-    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/`, {
+    fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newYarn),
@@ -177,7 +177,7 @@ const Stash = () => {
     };
 
     try {
-      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedYarn),
@@ -214,7 +214,7 @@ const Stash = () => {
     };
 
     console.log('Sending tool data:', newTool);
-    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/tools/`, {
+    fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/tools/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTool),
@@ -260,7 +260,7 @@ const Stash = () => {
   };
 
   const removeYarn = (id: string) => {
-    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/${id}`, {
+    fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/${id}`, {
       method: 'DELETE',
     })
       .then(() => {
@@ -283,7 +283,7 @@ const Stash = () => {
       return;
     }
     
-    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/tools/${id}`, {
+    fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/tools/${id}`, {
       method: 'DELETE',
     })
       .then((response) => {
@@ -344,7 +344,7 @@ const Stash = () => {
       
       for (const weight of patternWeights) {
         // Get imported patterns
-        const importedResponse = await fetch(`${API_CONFIG.endpoints.patterns}/patterns/?weight=${encodeURIComponent(weight)}&page=1&page_size=10`);
+        const importedResponse = await fetch(`${API_CONFIG.endpoints.patterns}?weight=${encodeURIComponent(weight)}&page=1&page_size=10`);
         if (importedResponse.ok) {
           const importedData = await importedResponse.json();
           allPatterns = [...allPatterns, ...(importedData.patterns || [])];
@@ -352,7 +352,7 @@ const Stash = () => {
         
         // Get user-uploaded patterns for current user
         if (currentUser) {
-          const userResponse = await fetch(`${API_CONFIG.endpoints.users}/users/${currentUser.user_id}/patterns/`);
+          const userResponse = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             // Filter user patterns by weight
