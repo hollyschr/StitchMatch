@@ -345,6 +345,8 @@ const Search = () => {
         if (showUploadedOnly) {
           stashParams.append('uploaded_only', 'true');
         }
+        // Add timestamp to force cache invalidation
+        stashParams.append('_t', Date.now().toString());
         
         const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?${stashParams.toString()}`;
         
@@ -391,9 +393,11 @@ const Search = () => {
           }
           if (showFreeOnly) params.append('free_only', 'true');
           if (shuffle) params.append('shuffle', 'true');
+          // Add timestamp to force cache invalidation
+          params.append('_t', Date.now().toString());
           query = "?" + params.toString();
         } else {
-          query = `?page=${page}&page_size=30`;
+          query = `?page=${page}&page_size=30&_t=${Date.now()}`;
         }
         
         const searchUrl = `${API_CONFIG.endpoints.patterns}${query}`;
