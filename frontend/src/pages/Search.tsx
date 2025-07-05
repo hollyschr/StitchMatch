@@ -235,6 +235,15 @@ const Search = () => {
   }, [yarnStash, calculateStashYardageByWeight, mapStashWeightToPatternWeight]);
 
   const performSearch = useCallback(async (formData: FormData | null = null, isRandom = false, shuffle = false, stashMatching?: boolean, page: number = 1, append: boolean = false, isInitialSearch: boolean = true) => {
+    console.log('=== PERFORM SEARCH DEBUG ===');
+    console.log('formData:', formData);
+    console.log('isRandom:', isRandom);
+    console.log('shuffle:', shuffle);
+    console.log('stashMatching:', stashMatching);
+    console.log('page:', page);
+    console.log('append:', append);
+    console.log('isInitialSearch:', isInitialSearch);
+    
     setIsLoading(true);
     let query = "";
     // Get current user from localStorage
@@ -257,7 +266,9 @@ const Search = () => {
         // Use the new random endpoint
         const randomUrl = `${API_CONFIG.endpoints.patterns}/random/`;
         console.log('DEBUG: Random search URL:', randomUrl);
+        console.log('DEBUG: About to fetch random URL');
         const res = await fetch(randomUrl);
+        console.log('DEBUG: Random fetch completed, status:', res.status);
         const patterns = await res.json();
         setSearchResults(patterns);
         setIsRandomMode(true);
@@ -272,7 +283,9 @@ const Search = () => {
         // Use the stash matching endpoint (matches yarn stash)
         const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`;
         console.log('DEBUG: Stash matching URL:', stashUrl);
+        console.log('DEBUG: About to fetch stash URL');
         const res = await fetch(stashUrl);
+        console.log('DEBUG: Stash fetch completed, status:', res.status);
         response = await res.json();
         
         // Set stash matching mode to true since we're using the stash matching endpoint
@@ -303,7 +316,9 @@ const Search = () => {
         
         const searchUrl = `${API_CONFIG.endpoints.patterns}${query}`;
         console.log('DEBUG: Regular search URL:', searchUrl);
+        console.log('DEBUG: About to fetch search URL');
         const res = await fetch(searchUrl);
+        console.log('DEBUG: Search fetch completed, status:', res.status);
         response = await res.json();
       }
       
