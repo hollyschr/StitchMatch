@@ -354,13 +354,30 @@ const Search = () => {
           totalPages = Math.min(countData.pagination.pages, 10); // Limit to 10 pages max for performance
         }
         
-        // Fetch patterns from multiple pages
+        // Fetch patterns from multiple random pages across the entire range
         const pageSize = 100;
         const pagesToFetch = Math.min(totalPages, 5); // Fetch up to 5 pages for better randomization
         
-        for (let i = 1; i <= pagesToFetch; i++) {
+        // Generate random page numbers to fetch from across the entire range
+        const randomPages = [];
+        for (let i = 0; i < pagesToFetch; i++) {
+          const randomPage = Math.floor(Math.random() * totalPages) + 1;
+          if (!randomPages.includes(randomPage)) {
+            randomPages.push(randomPage);
+          }
+        }
+        
+        // If we don't have enough unique random pages, add more
+        while (randomPages.length < pagesToFetch && randomPages.length < totalPages) {
+          const randomPage = Math.floor(Math.random() * totalPages) + 1;
+          if (!randomPages.includes(randomPage)) {
+            randomPages.push(randomPage);
+          }
+        }
+        
+        for (let i = 0; i < randomPages.length; i++) {
           const params = new URLSearchParams();
-          params.append('page', i.toString());
+          params.append('page', randomPages[i].toString());
           params.append('page_size', pageSize.toString());
           if (formData) {
             if (formData.get('projectType') && formData.get('projectType') !== 'any') params.append('project_type', formData.get('projectType') as string);
