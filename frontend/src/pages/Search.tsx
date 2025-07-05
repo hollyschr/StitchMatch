@@ -322,18 +322,47 @@ const Search = () => {
       let response: SearchResponse;
       
       if (isRandom) {
-        // Use the new random endpoint
-        const randomUrl = `${API_CONFIG.endpoints.patterns}/random/`;
-        
-        const res = await fetch(randomUrl);
-
-        const patterns = await res.json();
-        setSearchResults(patterns);
+        // For random search, we'll use the regular search endpoint with constraints
+        // and then shuffle the results to get random patterns
         setIsRandomMode(true);
-        setPaginationInfo(null);
-        setIsLoading(false);
-        toast({ title: `Found ${patterns.length} random pattern${patterns.length !== 1 ? 's' : ''} for you!` });
-        return;
+        
+        // Use the regular patterns endpoint with current constraints
+        setIsStashMatchingMode(false);
+        
+        if (formData) {
+          setLastFormData(formData);
+          const params = new URLSearchParams();
+          params.append('page', page.toString());
+          params.append('page_size', '100'); // Get more results for better randomization
+          if (formData.get('projectType') && formData.get('projectType') !== 'any') params.append('project_type', formData.get('projectType') as string);
+          if (formData.get('craftType') && formData.get('craftType') !== 'any') params.append('craft_type', formData.get('craftType') as string);
+          if (formData.get('weight') && formData.get('weight') !== 'any') params.append('weight', formData.get('weight') as string);
+          if (formData.get('designer') && formData.get('designer') !== '') params.append('designer', formData.get('designer') as string);
+          if (showUploadedOnly) {
+            params.append('uploaded_only', 'true');
+            if (userId !== null) params.append('user_id', String(userId));
+          }
+          if (showFreeOnly) params.append('free_only', 'true');
+          // Add timestamp to force cache invalidation
+          params.append('_t', Date.now().toString());
+          query = "?" + params.toString();
+        } else {
+          query = `?page=${page}&page_size=100&_t=${Date.now()}`;
+        }
+        
+        const searchUrl = `${API_CONFIG.endpoints.patterns}${query}`;
+        const res = await fetch(searchUrl);
+        
+        if (res.ok) {
+          response = await res.json();
+          // Shuffle the results and take 3 random patterns
+          const shuffledPatterns = response.patterns.sort(() => Math.random() - 0.5).slice(0, 3);
+          setSearchResults(shuffledPatterns);
+          setPaginationInfo(null); // No pagination for random results
+          setIsLoading(false);
+          toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} for you!` });
+          return;
+        }
       }
       
       // If stash matching is enabled and we have a user, use the stash matching endpoint
@@ -414,11 +443,8 @@ const Search = () => {
       setPaginationInfo(response.pagination);
       setCurrentPage(page);
       
-      // For random search, shuffle and take a few
+      // Get patterns from response
       let patterns = response.patterns;
-      if (isRandom) {
-        patterns = patterns.sort(() => Math.random() - 0.5).slice(0, 3);
-      }
       
       // Append or replace results
       if (append) {
@@ -471,7 +497,37 @@ const Search = () => {
 
   const handleRandomSearch = () => {
     setIsRandomMode(false); // reset before search
-    performSearch(null, true, false, false, 1, false, true);
+    
+    // Get current form data to apply constraints
+    const form = document.getElementById('searchForm') as HTMLFormElement;
+    let formData: FormData | null = null;
+    
+    if (form) {
+      formData = new FormData(form);
+      
+      // Check if any filters are set (not "any" or empty)
+      const projectType = formData.get('projectType') as string;
+      const craftType = formData.get('craftType') as string;
+      const weight = formData.get('weight') as string;
+      const designer = formData.get('designer') as string;
+      
+      // Only use formData if there are actual constraints
+      const hasConstraints = (
+        (projectType && projectType !== 'any') ||
+        (craftType && craftType !== 'any') ||
+        (weight && weight !== 'any') ||
+        (designer && designer !== '') ||
+        showUploadedOnly ||
+        showFreeOnly ||
+        isMatchingStash
+      );
+      
+      if (!hasConstraints) {
+        formData = null; // Use null to get truly random patterns
+      }
+    }
+    
+    performSearch(formData, true, false, isMatchingStash, 1, false, true);
   };
 
   const handleMatchStash = useCallback(() => {
