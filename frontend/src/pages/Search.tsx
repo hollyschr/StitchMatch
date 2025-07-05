@@ -81,6 +81,9 @@ const Search = () => {
   const [pageInput, setPageInput] = useState('');
   const pageInputRef = useRef<HTMLInputElement>(null);
 
+  // Cache for stash matching results
+  const [stashMatchCache, setStashMatchCache] = useState<Map<string, any>>(new Map());
+
   // Load data from localStorage and API
   useEffect(() => {
     const savedYarn = localStorage.getItem('yarnStash');
@@ -110,6 +113,9 @@ const Search = () => {
             })) : [];
             setYarnStash(transformedYarn);
             localStorage.setItem('yarnStash', JSON.stringify(transformedYarn));
+            
+            // Clear stash match cache when stash changes
+            setStashMatchCache(new Map());
           }
         } catch (error) {
           console.error('Error fetching yarn stash:', error);
@@ -342,13 +348,29 @@ const Search = () => {
         
         const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?${stashParams.toString()}`;
         
-        const res = await fetch(stashUrl);
+        // Check cache first
+        const cacheKey = `${userId}-${stashParams.toString()}`;
+        const cachedResult = stashMatchCache.get(cacheKey);
         
-        if (res.ok) {
-          response = await res.json();
-          
-          // Set stash matching mode to true since we're using the stash matching endpoint
+        if (cachedResult && !append) {
+          // Use cached result for non-append requests
+          response = cachedResult;
           setIsStashMatchingMode(true);
+        } else {
+          // Fetch from API
+          const res = await fetch(stashUrl);
+          
+          if (res.ok) {
+            response = await res.json();
+            
+            // Cache the result (only for non-append requests)
+            if (!append) {
+              setStashMatchCache(prev => new Map(prev).set(cacheKey, response));
+            }
+            
+            // Set stash matching mode to true since we're using the stash matching endpoint
+            setIsStashMatchingMode(true);
+          }
         }
       } else {
         // Use the regular patterns endpoint

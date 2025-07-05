@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from pydantic import BaseModel
@@ -33,6 +33,42 @@ Base = declarative_base()
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
+
+# Create additional indexes for better performance
+def create_indexes():
+    """Create additional indexes for better query performance"""
+    db = SessionLocal()
+    try:
+        # Index for PatternSuggestsYarn lookups
+        db.execute("CREATE INDEX IF NOT EXISTS idx_pattern_suggests_yarn_pattern ON PatternSuggestsYarn(pattern_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_pattern_suggests_yarn_yarn ON PatternSuggestsYarn(yarn_id)")
+        
+        # Index for YarnType weight lookups
+        db.execute("CREATE INDEX IF NOT EXISTS idx_yarn_type_weight ON YarnType(weight)")
+        
+        # Index for OwnsYarn user lookups
+        db.execute("CREATE INDEX IF NOT EXISTS idx_owns_yarn_user ON OwnsYarn(user_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_owns_yarn_yarn ON OwnsYarn(yarn_id)")
+        
+        # Index for pattern relationships
+        db.execute("CREATE INDEX IF NOT EXISTS idx_requires_craft_type_pattern ON RequiresCraftType(pattern_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_suitable_for_pattern ON SuitableFor(pattern_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_has_link_pattern ON HasLink_Link(pattern_id)")
+        
+        # Index for OwnsPattern user lookups
+        db.execute("CREATE INDEX IF NOT EXISTS idx_owns_pattern_user ON OwnsPattern(user_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_owns_pattern_pattern ON OwnsPattern(pattern_id)")
+        
+        db.commit()
+        print("Database indexes created successfully")
+    except Exception as e:
+        print(f"Error creating indexes: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+# Create indexes on startup
+create_indexes()
 
 app = FastAPI()
 
@@ -1203,35 +1239,95 @@ def get_stash_matching_patterns(
             stash_yardage_by_weight[weight] = 0
         stash_yardage_by_weight[weight] += stash_item.yardage
     
-    # Get patterns based on uploaded_only filter
+    # Get stash weights for filtering
+    stash_weights = list(stash_yardage_by_weight.keys())
+    
+    # Build the base query with all necessary JOINs
+    base_query = db.query(
+        Pattern.pattern_id,
+        Pattern.name,
+        Pattern.designer,
+        Pattern.image,
+        Pattern.pdf_file,
+        YarnType.weight,
+        PatternSuggestsYarn.yardage_min,
+        PatternSuggestsYarn.yardage_max,
+        CraftType.name.label('craft_type_name'),
+        ProjectType.name.label('project_type_name'),
+        HasLink_Link.url,
+        HasLink_Link.price
+    ).join(
+        PatternSuggestsYarn, Pattern.pattern_id == PatternSuggestsYarn.pattern_id
+    ).join(
+        YarnType, PatternSuggestsYarn.yarn_id == YarnType.yarn_id
+    ).outerjoin(
+        RequiresCraftType, Pattern.pattern_id == RequiresCraftType.pattern_id
+    ).outerjoin(
+        CraftType, RequiresCraftType.craft_type_id == CraftType.craft_type_id
+    ).outerjoin(
+        SuitableFor, Pattern.pattern_id == SuitableFor.pattern_id
+    ).outerjoin(
+        ProjectType, SuitableFor.project_type_id == ProjectType.project_type_id
+    ).outerjoin(
+        HasLink_Link, Pattern.pattern_id == HasLink_Link.pattern_id
+    )
+    
+    # Apply uploaded_only filter
     if uploaded_only:
-        # Only get patterns uploaded by this user
-        all_patterns = db.query(Pattern).join(OwnsPattern).filter(OwnsPattern.user_id == user_id).all()
-    else:
-        # Get ALL patterns (not just those with PatternSuggestsYarn entries)
-        all_patterns = db.query(Pattern).all()
+        base_query = base_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
     
+    # Filter by stash weights (including compatible weights)
+    compatible_weights = set()
+    for stash_weight in stash_weights:
+        compatible_weights.add(stash_weight)
+        # Add compatible weights
+        compatibles = get_compatible_weights(stash_weight)
+        compatible_weights.update(compatibles)
+    
+    # Convert to lowercase for case-insensitive matching
+    compatible_weights_lower = [w.lower() for w in compatible_weights]
+    
+    # Filter patterns by compatible weights
+    base_query = base_query.filter(
+        func.lower(YarnType.weight).in_(compatible_weights_lower)
+    )
+    
+    # Get total count for pagination
+    total_count_query = base_query.with_entities(func.count(Pattern.pattern_id))
+    total_matching = total_count_query.scalar()
+    
+    if total_matching == 0:
+        db.close()
+        return PaginatedPatternResponse(
+            patterns=[],
+            pagination={
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "pages": 0,
+                "has_next": False,
+                "has_prev": False
+            }
+        )
+    
+    # Apply pagination
+    offset = (page - 1) * page_size
+    base_query = base_query.offset(offset).limit(page_size)
+    
+    # Execute the query
+    results = base_query.all()
+    
+    # Process results and apply yardage filtering
     matching_patterns = []
-    total_matching = 0
-    
-    for pattern in all_patterns:
-        # Get yarn weight and yardage for this pattern
-        yarn_result = db.query(YarnType.weight, PatternSuggestsYarn.yardage_min, PatternSuggestsYarn.yardage_max).join(PatternSuggestsYarn).filter(
-            PatternSuggestsYarn.pattern_id == pattern.pattern_id
-        ).first()
-        
-        # If no yarn data found in PatternSuggestsYarn, skip this pattern (can't determine if it matches)
-        if not yarn_result:
-            continue
-        else:
-            pattern_weight = yarn_result[0].lower() if yarn_result[0] else None
-            yardage_min = yarn_result[1]
-            yardage_max = yarn_result[2]
+    for result in results:
+        pattern_weight = result.weight.lower() if result.weight else None
+        yardage_min = result.yardage_min
+        yardage_max = result.yardage_max
         
         if not pattern_weight:
             continue
             
-        # Check if user has yarn in this weight class or compatible weight
+        # Calculate stash yardage for this pattern
         stash_yardage = 0
         
         # Direct match
@@ -1266,69 +1362,37 @@ def get_stash_matching_patterns(
             continue
         
         if matches:
-            total_matching += 1
-            
-            # Apply pagination - only process patterns for current page
-            if total_matching <= (page - 1) * page_size:
-                continue
-            if len(matching_patterns) >= page_size:
-                continue
-                
-            # Get additional pattern info
-            craft_type_result = db.query(CraftType.name).join(RequiresCraftType).filter(
-                RequiresCraftType.pattern_id == pattern.pattern_id
-            ).first()
-            craft_type_name = craft_type_result[0] if craft_type_result else None
-            
-            project_type_result = db.query(ProjectType.name).join(SuitableFor).filter(
-                SuitableFor.pattern_id == pattern.pattern_id
-            ).first()
-            project_type_name = project_type_result[0] if project_type_result else None
-            
-            # Get pattern link and price
-            link_result = db.query(HasLink_Link.url, HasLink_Link.price).filter(
-                HasLink_Link.pattern_id == pattern.pattern_id
-            ).first()
-            
-            if link_result:
-                pattern_url = link_result[0]
-                # Format price for display
-                price_value = link_result[1]
-                if price_value is not None:
-                    if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
-                        price_display = "Free"
-                    else:
-                        # Keep the original price string as it may contain currency info
-                        price_display = price_value
+            # Format price for display
+            price_value = result.price
+            if price_value is not None:
+                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
+                    price_display = "Free"
                 else:
-                    price_display = None
+                    # Keep the original price string as it may contain currency info
+                    price_display = price_value
             else:
-                # This is a user-uploaded pattern, no price or URL
-                pattern_url = None
                 price_display = None
             
             matching_patterns.append(PatternResponse(
-                pattern_id=pattern.pattern_id,
-                name=pattern.name,
-                designer=pattern.designer,
-                image=pattern.image if pattern.image is not None else "/placeholder.svg",
-                pdf_file=pattern.pdf_file,
+                pattern_id=result.pattern_id,
+                name=result.name,
+                designer=result.designer,
+                image=result.image if result.image is not None else "/placeholder.svg",
+                pdf_file=result.pdf_file,
                 yardage_min=yardage_min,
                 yardage_max=yardage_max,
                 grams_min=None,  # Could add this if needed
                 grams_max=None,  # Could add this if needed
-                project_type=project_type_name,
-                craft_type=craft_type_name,
+                project_type=result.project_type_name,
+                craft_type=result.craft_type_name,
                 required_weight=pattern_weight,
-                pattern_url=pattern_url,
+                pattern_url=result.url,
                 price=price_display
             ))
     
     db.close()
     
-    # Calculate pagination info - ensure page_size is not zero to prevent division by zero
-    if page_size <= 0:
-        page_size = 30
+    # Calculate pagination info
     total_pages = (total_matching + page_size - 1) // page_size
     
     return PaginatedPatternResponse(
