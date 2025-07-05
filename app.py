@@ -1567,7 +1567,9 @@ def debug_user_patterns(user_id: int):
             "yardage_max": yarn_result[2] if yarn_result else None,
             "grams_min": yarn_result[3] if yarn_result else None,
             "grams_max": yarn_result[4] if yarn_result else None,
-            "has_yarn_data": yarn_result is not None
+            "has_yarn_data": yarn_result is not None,
+            "pdf_file": pattern.pdf_file,
+            "has_pdf": pattern.pdf_file is not None
         })
     
     db.close()
