@@ -45,6 +45,8 @@ app.add_middleware(
         "http://192.168.1.95:3000",
         "https://*.railway.app",  # Allow Railway domains
         "https://*.vercel.app",   # Allow Vercel domains
+        "https://stitch-match.vercel.app",  # Specific Vercel domain
+        "https://stitch-match-*.vercel.app",  # Preview deployments
         "https://*.render.com",   # Allow Render domains
     ],
     allow_credentials=True,
