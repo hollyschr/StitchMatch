@@ -39,16 +39,12 @@ app = FastAPI()
 # HTTP to HTTPS redirection middleware
 @app.middleware("http")
 async def redirect_http_to_https(request: Request, call_next):
-    # Check if the request is HTTP and we're in production (Railway)
-    if (request.url.scheme == "http" and 
-        "railway" in request.url.hostname and 
-        request.url.hostname != "localhost"):
-        
-        # Construct HTTPS URL
+    # Check X-Forwarded-Proto header (used by proxies like Railway)
+    forwarded_proto = request.headers.get("x-forwarded-proto")
+    if forwarded_proto == "http":
         https_url = str(request.url).replace("http://", "https://", 1)
         print(f"🔄 Redirecting HTTP to HTTPS: {request.url} -> {https_url}")
         return RedirectResponse(url=https_url, status_code=301)
-    
     response = await call_next(request)
     return response
 
