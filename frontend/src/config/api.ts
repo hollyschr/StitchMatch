@@ -9,16 +9,27 @@ console.log('All env vars:', (import.meta as any).env);
 console.log('Cache bust timestamp:', Date.now());
 console.log('==================');
 
+// URL validation function
+const validateUrl = (url: string) => {
+  if (url.startsWith('http://')) {
+    console.error('🚨 HTTP URL DETECTED:', url);
+    console.error('🚨 This should be HTTPS!');
+    // Convert to HTTPS
+    return url.replace('http://', 'https://');
+  }
+  return url;
+};
+
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
   endpoints: {
-    patterns: `${API_BASE_URL}/patterns`,
-    users: `${API_BASE_URL}/users`,
-    auth: `${API_BASE_URL}/auth`,
-    favorites: `${API_BASE_URL}/users`,
-    yarn: `${API_BASE_URL}/users`,
-    tools: `${API_BASE_URL}/users`,
-    pdf: `${API_BASE_URL}/view-pdf`,
+    patterns: validateUrl(`${API_BASE_URL}/patterns`),
+    users: validateUrl(`${API_BASE_URL}/users`),
+    auth: validateUrl(`${API_BASE_URL}/auth`),
+    favorites: validateUrl(`${API_BASE_URL}/users`),
+    yarn: validateUrl(`${API_BASE_URL}/users`),
+    tools: validateUrl(`${API_BASE_URL}/users`),
+    pdf: validateUrl(`${API_BASE_URL}/view-pdf`),
   }
 };
 
