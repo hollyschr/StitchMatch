@@ -934,8 +934,10 @@ def get_all_patterns(
         query = db.query(Pattern)
         # Apply filters
         if project_type:
+            # Map frontend project type to database value
+            db_project_type = map_frontend_project_type_to_db(project_type)
             query = query.join(SuitableFor).join(ProjectType).filter(
-                ProjectType.name.ilike(f"%{project_type}%")
+                ProjectType.name == db_project_type
             )
         if craft_type:
             query = query.join(RequiresCraftType).join(CraftType).filter(
@@ -1574,6 +1576,35 @@ def get_stash_matching_patterns(
             "has_prev": page > 1
         }
     )
+
+def map_frontend_project_type_to_db(frontend_value):
+    """Map frontend project type values to database values"""
+    mapping = {
+        'mittens-gloves': 'Mittens/Gloves',
+        'shawl-wrap': 'Shawl/Wrap',
+        'tank-camisole': 'Tank/Camisole',
+        'dress-suit': 'Dress/Suit',
+        'child': 'Child',
+        'hat': 'Hat',
+        'baby': 'Baby',
+        'socks': 'Socks',
+        'scarf': 'Scarf',
+        'home': 'Home',
+        'pullover': 'Pullover',
+        'toys': 'Toys',
+        'pet': 'Pet',
+        'other': 'Other',
+        'shrug': 'Shrug',
+        'blanket': 'Blanket',
+        'cardigan': 'Cardigan',
+        'vest': 'Vest',
+        'tee': 'Tee',
+        'jacket': 'Jacket',
+        'bag': 'Bag',
+        'skirt': 'Skirt',
+        'dishcloth': 'Dishcloth'
+    }
+    return mapping.get(frontend_value, frontend_value)
 
 def get_compatible_weights(pattern_weight):
     """Return list of compatible yarn weights for substitution"""
