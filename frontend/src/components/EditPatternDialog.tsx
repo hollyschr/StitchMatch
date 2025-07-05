@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { API_CONFIG } from '../config/api';
+import { Upload, X } from 'lucide-react';
 
 interface Pattern {
   pattern_id: number;
@@ -99,6 +100,8 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [removePdf, setRemovePdf] = useState(false);
   const [formData, setFormData] = useState({
     name: pattern.name,
     designer: pattern.designer,
@@ -136,11 +139,25 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
     }));
   };
 
+  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedPdfFile(file);
+      setRemovePdf(false);
+    }
+  };
+
+  const handleRemovePdf = () => {
+    setRemovePdf(true);
+    setSelectedPdfFile(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      // First, update the pattern data
       const response = await fetch(`${API_CONFIG.baseUrl}/users/${userId}/patterns/${pattern.pattern_id}/?timestamp=${Date.now()}`, {
         method: 'PUT',
         headers: {
@@ -150,7 +167,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           name: formData.name,
           designer: formData.designer,
           image: formData.image,
-          pdf_file: pattern.pdf_file, // Keep existing PDF file
+          pdf_file: removePdf ? null : (selectedPdfFile ? selectedPdfFile.name : pattern.pdf_file),
           description: formData.description || undefined,
           project_type: formData.project_type || undefined,
           craft_type: formData.craft_type || undefined,
@@ -163,6 +180,32 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
       });
 
       if (response.ok) {
+        // Upload new PDF if selected
+        if (selectedPdfFile) {
+          const pdfFormData = new FormData();
+          pdfFormData.append('file', selectedPdfFile);
+          
+          const pdfResponse = await fetch(`${API_CONFIG.baseUrl}/upload-pdf/${pattern.pattern_id}`, {
+            method: 'POST',
+            body: pdfFormData,
+          });
+          
+          if (!pdfResponse.ok) {
+            console.error('Failed to upload PDF');
+            toast({
+              title: "Warning",
+              description: "Pattern updated but PDF upload failed. You can try uploading the PDF again.",
+              variant: "destructive",
+            });
+          }
+        }
+
+        // Remove PDF if requested
+        if (removePdf && pattern.pdf_file) {
+          // Note: We don't have a delete PDF endpoint, so we just update the database
+          // The file will remain on disk but won't be associated with the pattern
+        }
+
         toast({
           title: "Success",
           description: "Pattern updated successfully!",
@@ -226,6 +269,55 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
               placeholder="https://example.com/image.jpg"
               required
             />
+          </div>
+
+          {/* PDF Management */}
+          <div className="space-y-2">
+            <Label>PDF Pattern File</Label>
+            <div className="space-y-2">
+              {pattern.pdf_file && !removePdf && !selectedPdfFile && (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                  <span className="text-sm text-gray-700">{pattern.pdf_file}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemovePdf}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              {selectedPdfFile && (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
+                  <span className="text-sm text-blue-700">{selectedPdfFile.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPdfFile(null)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              {(!pattern.pdf_file || removePdf) && !selectedPdfFile && (
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handlePdfUpload}
+                  />
+                  <Button variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload PDF
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

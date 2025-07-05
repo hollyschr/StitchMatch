@@ -467,6 +467,19 @@ const PatternCard = ({
               
               {/* PDF buttons for user patterns */}
               <div className="flex gap-2">
+                {showEditButton && onEdit && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(pattern);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
                 {showDownloadButton && pattern.pdf_file && (
                   <Button 
                     variant="outline" 
