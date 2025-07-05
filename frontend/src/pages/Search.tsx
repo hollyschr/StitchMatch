@@ -8,6 +8,7 @@ import { Search as SearchIcon, Shuffle, History, Book, Package } from 'lucide-re
 import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import PatternCard from '@/components/PatternCard';
+import API_CONFIG from '@/config/api';
 
 interface Pattern {
   pattern_id: number;
@@ -96,7 +97,7 @@ const Search = () => {
 
       try {
         const user = JSON.parse(savedUser);
-        const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/?page=1&page_size=1000`);
+        const response = await fetch(`${API_CONFIG.endpoints.favorites}/${user.user_id}/favorites/?page=1&page_size=1000`);
         if (response.ok) {
           const data = await response.json();
           const favoritedIds = new Set<number>(data.patterns.map((p: any) => p.pattern_id as number));
@@ -254,7 +255,7 @@ const Search = () => {
       
       if (isRandom) {
         // Use the new random endpoint
-        const res = await fetch('http://localhost:8080/patterns/random/');
+        const res = await fetch(`${API_CONFIG.endpoints.patterns}/random/`);
         const patterns = await res.json();
         setSearchResults(patterns);
         setIsRandomMode(true);
@@ -267,7 +268,7 @@ const Search = () => {
       // If stash matching is enabled and we have a user, use the stash matching endpoint
       if (shouldMatchStash && userId) {
         // Use the stash matching endpoint (matches yarn stash)
-        const res = await fetch(`http://localhost:8080/patterns/stash-match/${userId}?page=${page}&page_size=30`);
+        const res = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`);
         response = await res.json();
         
         // Set stash matching mode to true since we're using the stash matching endpoint
@@ -296,7 +297,7 @@ const Search = () => {
           query = `?page=${page}&page_size=30`;
         }
         
-        const res = await fetch(`http://localhost:8080/patterns/${query}`);
+        const res = await fetch(`${API_CONFIG.endpoints.patterns}${query}`);
         response = await res.json();
       }
       
@@ -444,7 +445,7 @@ const Search = () => {
       const user = JSON.parse(savedUser);
       const isCurrentlyFavorited = favoritedPatterns.has(patternId);
       
-      const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/${patternId}/`, {
+      const response = await fetch(`${API_CONFIG.endpoints.favorites}/${user.user_id}/favorites/${patternId}/`, {
         method: isCurrentlyFavorited ? 'DELETE' : 'POST',
       });
 
