@@ -6,6 +6,7 @@ console.log('=== DEBUG INFO ===');
 console.log('API_BASE_URL:', API_BASE_URL);
 console.log('Environment variable:', (import.meta as any).env?.VITE_API_URL);
 console.log('All env vars:', (import.meta as any).env);
+console.log('Cache bust timestamp:', Date.now());
 console.log('==================');
 
 export const API_CONFIG = {
