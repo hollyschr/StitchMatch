@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart } from 'lucide-react';
+import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart, Edit } from 'lucide-react';
 import API_CONFIG from '@/config/api';
 
 interface Pattern {
@@ -42,6 +42,8 @@ interface PatternCardProps {
   showUploadButton?: boolean;
   onUploadPdf?: (patternId: number, file: File) => void;
   showDownloadButton?: boolean;
+  showEditButton?: boolean;
+  onEdit?: (pattern: Pattern) => void;
   variant?: 'search' | 'patterns';
   showFavoriteButton?: boolean;
   isFavorited?: boolean;
@@ -58,6 +60,8 @@ const PatternCard = ({
   showUploadButton = false,
   onUploadPdf,
   showDownloadButton = false,
+  showEditButton = false,
+  onEdit,
   variant = 'search',
   showFavoriteButton = false,
   isFavorited = false,
@@ -665,6 +669,15 @@ const PatternCard = ({
               
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4">
+                {showEditButton && onEdit && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => onEdit(pattern)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Pattern
+                  </Button>
+                )}
                 {showDownloadButton && pattern.pdf_file && (
                   <Button 
                     variant="outline"

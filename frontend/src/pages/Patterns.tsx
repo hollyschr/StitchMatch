@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import PatternCard from '@/components/PatternCard';
+import { EditPatternDialog } from '@/components/EditPatternDialog';
 import API_CONFIG from '@/config/api';
 
 interface User {
@@ -47,6 +48,8 @@ const Patterns = () => {
   const [filterPdf, setFilterPdf] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [favoritedPatterns, setFavoritedPatterns] = useState<Set<number>>(new Set());
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [patternToEdit, setPatternToEdit] = useState<UserPattern | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -268,6 +271,32 @@ const Patterns = () => {
   };
 
   // Toggle favorite status for a pattern
+  const handleEditPattern = (pattern: UserPattern) => {
+    setPatternToEdit(pattern);
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePatternUpdated = () => {
+    // Refresh the patterns list
+    if (currentUser) {
+      fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`)
+        .then(res => {
+          if (res.ok) {
+            return res.json();
+          } else {
+            throw new Error('Failed to fetch patterns');
+          }
+        })
+        .then(data => {
+          setUserPatterns(data);
+        })
+        .catch(error => {
+          console.error('Error fetching patterns:', error);
+          toast({ title: "Error refreshing patterns" });
+        });
+    }
+  };
+
   const handleToggleFavorite = async (patternId: number) => {
     const savedUser = localStorage.getItem('currentUser');
     if (!savedUser) {
@@ -623,6 +652,8 @@ const Patterns = () => {
                   showUploadButton={true}
                   onUploadPdf={uploadPdfToPattern}
                   showDownloadButton={true}
+                  showEditButton={true}
+                  onEdit={handleEditPattern}
                   showFavoriteButton={true}
                   isFavorited={favoritedPatterns.has(pattern.pattern_id)}
                   onToggleFavorite={handleToggleFavorite}
@@ -640,6 +671,20 @@ const Patterns = () => {
               Add Your First Pattern
             </Button>
           </div>
+        )}
+
+        {/* Edit Pattern Dialog */}
+        {patternToEdit && (
+          <EditPatternDialog
+            pattern={patternToEdit}
+            isOpen={isEditDialogOpen}
+            onClose={() => {
+              setIsEditDialogOpen(false);
+              setPatternToEdit(null);
+            }}
+            onUpdate={handlePatternUpdated}
+            userId={currentUser?.user_id || 0}
+          />
         )}
       </div>
     </div>

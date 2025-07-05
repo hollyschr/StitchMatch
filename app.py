@@ -567,6 +567,103 @@ def add_pattern(user_id: int, pattern: PatternCreate):
     
     return {"pattern_id": pattern_id}
 
+@app.put("/users/{user_id}/patterns/{pattern_id}/")
+def update_user_pattern(user_id: int, pattern_id: int, pattern: PatternCreate):
+    """Update an existing user pattern"""
+    db = SessionLocal()
+    
+    # Check if user exists
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if pattern exists and belongs to user
+    existing_pattern = db.query(Pattern).join(OwnsPattern).filter(
+        Pattern.pattern_id == pattern_id,
+        OwnsPattern.user_id == user_id
+    ).first()
+    
+    if not existing_pattern:
+        db.close()
+        raise HTTPException(status_code=404, detail="Pattern not found or not owned by user")
+    
+    # Update basic pattern information
+    existing_pattern.name = pattern.name
+    existing_pattern.designer = pattern.designer
+    existing_pattern.image = pattern.image
+    if pattern.pdf_file:
+        existing_pattern.pdf_file = pattern.pdf_file
+    
+    # Update craft type
+    if pattern.craft_type:
+        craft_type = db.query(CraftType).filter(CraftType.name == pattern.craft_type).first()
+        if not craft_type:
+            craft_type = CraftType(name=pattern.craft_type)
+            db.add(craft_type)
+            db.flush()  # Get the ID
+        
+        # Remove existing craft type associations
+        db.query(RequiresCraftType).filter(RequiresCraftType.pattern_id == pattern_id).delete()
+        
+        # Add new craft type association
+        requires_craft = RequiresCraftType(pattern_id=pattern_id, craft_type_id=craft_type.craft_type_id)
+        db.add(requires_craft)
+    
+    # Update project type
+    if pattern.project_type:
+        project_type = db.query(ProjectType).filter(ProjectType.name == pattern.project_type).first()
+        if not project_type:
+            project_type = ProjectType(name=pattern.project_type)
+            db.add(project_type)
+            db.flush()  # Get the ID
+        
+        # Remove existing project type associations
+        db.query(SuitableFor).filter(SuitableFor.pattern_id == pattern_id).delete()
+        
+        # Add new project type association
+        suitable_for = SuitableFor(pattern_id=pattern_id, project_type_id=project_type.project_type_id)
+        db.add(suitable_for)
+    
+    # Update yarn information
+    if pattern.required_weight:
+        # Find or create yarn type
+        yarn_type = db.query(YarnType).filter(YarnType.weight == pattern.required_weight).first()
+        if not yarn_type:
+            # Create a generic yarn type for this weight
+            yarn_type = YarnType(
+                yarn_id=f"generic_{pattern.required_weight.lower().replace(' ', '_')}",
+                yarn_name=f"Generic {pattern.required_weight}",
+                brand="Generic",
+                weight=pattern.required_weight,
+                fiber="Unknown"
+            )
+            db.add(yarn_type)
+            db.flush()
+        
+        # Remove existing yarn associations
+        db.query(PatternSuggestsYarn).filter(PatternSuggestsYarn.pattern_id == pattern_id).delete()
+        
+        # Add new yarn association
+        pattern_suggests_yarn = PatternSuggestsYarn(
+            pattern_id=pattern_id,
+            yarn_id=yarn_type.yarn_id,
+            yardage_min=pattern.yardage_min,
+            yardage_max=pattern.yardage_max,
+            grams_min=pattern.grams_min,
+            grams_max=pattern.grams_max
+        )
+        db.add(pattern_suggests_yarn)
+    
+    try:
+        db.commit()
+        db.close()
+        return {"message": "Pattern updated successfully"}
+    except Exception as e:
+        db.rollback()
+        db.close()
+        raise HTTPException(status_code=500, detail=f"Failed to update pattern: {str(e)}")
+
 @app.delete("/users/{user_id}/patterns/{pattern_id}/")
 def delete_user_pattern(user_id: int, pattern_id: int):
     db = SessionLocal()
