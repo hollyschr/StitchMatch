@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart } from 'lucide-react';
+import API_CONFIG from '@/config/api';
 
 interface Pattern {
   pattern_id: number;
@@ -339,7 +340,7 @@ const PatternCard = ({
                   className="flex-1 text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(`http://127.0.0.1:8080/download-pdf/${pattern.pattern_id}`, '_blank');
+                    window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
                   }}
                 >
                   <Download className="h-3 w-3 mr-1" />
@@ -422,7 +423,7 @@ const PatternCard = ({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`http://127.0.0.1:8080/download-pdf/${pattern.pattern_id}`, '_blank');
+                      window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" />
@@ -497,7 +498,7 @@ const PatternCard = ({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`http://127.0.0.1:8080/download-pdf/${pattern.pattern_id}`, '_blank');
+                      window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" />
@@ -509,7 +510,7 @@ const PatternCard = ({
                     variant="default" 
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`http://127.0.0.1:8080/view-pdf/${pattern.pattern_id}`, '_blank');
+                      window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
                     }}
                     className="w-full bg-black hover:bg-gray-800"
                   >
@@ -647,7 +648,7 @@ const PatternCard = ({
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => window.open(`http://127.0.0.1:8080/view-pdf/${pattern.pattern_id}`, '_blank')}
+                        onClick={() => window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank')}
                         className="h-6 px-2 text-xs bg-black hover:bg-gray-800"
                       >
                         Open PDF
@@ -668,7 +669,7 @@ const PatternCard = ({
                   </div>
                   <div className={isPdfFullScreen ? "h-[80vh]" : "h-96"}>
                     <iframe
-                      src={`http://127.0.0.1:8080/view-pdf/${pattern.pattern_id}`}
+                      src={`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`}
                       className="w-full h-full"
                       title="PDF Pattern"
                     />
@@ -681,7 +682,7 @@ const PatternCard = ({
                 {showDownloadButton && pattern.pdf_file && (
                   <Button 
                     variant="outline"
-                    onClick={() => window.open(`http://127.0.0.1:8080/download-pdf/${pattern.pattern_id}`, '_blank')}
+                    onClick={() => window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank')}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF

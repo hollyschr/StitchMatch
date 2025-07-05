@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import PatternCard from '@/components/PatternCard';
+import API_CONFIG from '@/config/api';
 
 interface User {
   user_id: number;
@@ -68,7 +69,7 @@ const Patterns = () => {
       
       // Fetch user's patterns
       console.log('Fetching patterns for user:', user.user_id);
-      fetch(`http://127.0.0.1:8080/users/${user.user_id}/patterns/`)
+      fetch(`${API_CONFIG.endpoints.users}/${user.user_id}/patterns/`)
         .then(res => {
           console.log('Response status:', res.status);
           if (res.ok) {
@@ -100,7 +101,7 @@ const Patterns = () => {
       if (!savedUser) return;
       try {
         const user = JSON.parse(savedUser);
-        const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/?page=1&page_size=1000`);
+        const response = await fetch(`${API_CONFIG.endpoints.users}/${user.user_id}/favorites/?page=1&page_size=1000`);
         if (response.ok) {
           const data = await response.json();
           const favoritedIds = new Set<number>(data.patterns.map((p: any) => p.pattern_id as number));
@@ -169,7 +170,7 @@ const Patterns = () => {
     console.log('Sending pattern data:', newPattern);
   
     try {
-      const response = await fetch(`http://127.0.0.1:8080/users/${currentUser.user_id}/patterns/`, {
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newPattern),
@@ -187,7 +188,7 @@ const Patterns = () => {
           const pdfFormData = new FormData();
           pdfFormData.append('file', selectedPdfFile);
           
-          const pdfResponse = await fetch(`http://127.0.0.1:8080/upload-pdf/${patternId}`, {
+          const pdfResponse = await fetch(`${API_CONFIG.baseUrl}/upload-pdf/${patternId}`, {
             method: "POST",
             body: pdfFormData,
           });
@@ -198,7 +199,7 @@ const Patterns = () => {
         }
         
         // Refresh the list
-        const updatedPatterns = await fetch(`http://127.0.0.1:8080/users/${currentUser.user_id}/patterns/`);
+        const updatedPatterns = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`);
         const patterns = await updatedPatterns.json();
         setUserPatterns(patterns);
         
@@ -224,7 +225,7 @@ const Patterns = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:8080/users/${currentUser.user_id}/patterns/${id}/`, {
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/${id}/`, {
         method: "DELETE",
       });
 
@@ -246,14 +247,14 @@ const Patterns = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`http://127.0.0.1:8080/upload-pdf/${patternId}`, {
+      const response = await fetch(`${API_CONFIG.baseUrl}/upload-pdf/${patternId}`, {
         method: "POST",
         body: formData,
       });
       
       if (response.ok) {
         // Refresh the patterns list
-        const updatedPatterns = await fetch(`http://127.0.0.1:8080/users/${currentUser!.user_id}/patterns/`);
+        const updatedPatterns = await fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/patterns/`);
         const patterns = await updatedPatterns.json();
         setUserPatterns(patterns);
         toast({ title: "PDF uploaded successfully!" });
@@ -279,7 +280,7 @@ const Patterns = () => {
     try {
       const user = JSON.parse(savedUser);
       const isCurrentlyFavorited = favoritedPatterns.has(patternId);
-      const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/${patternId}/`, {
+      const response = await fetch(`${API_CONFIG.endpoints.users}/${user.user_id}/favorites/${patternId}/`, {
         method: isCurrentlyFavorited ? 'DELETE' : 'POST',
       });
       if (response.ok) {

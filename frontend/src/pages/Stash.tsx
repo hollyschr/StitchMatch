@@ -10,6 +10,7 @@ import { Trash2, Plus, Package, Wrench, Edit, ChevronDown, ChevronRight } from '
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import API_CONFIG from '@/config/api';
 
 interface User {
   user_id: number;
@@ -78,7 +79,7 @@ const Stash = () => {
 
   const fetchYarnStash = async (userId: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/users/${userId}/yarn/`);
+      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${userId}/yarn/`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the frontend interface
@@ -101,7 +102,7 @@ const Stash = () => {
 
   const fetchTools = async (userId: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/users/${userId}/tools/`);
+      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${userId}/tools/`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the frontend interface
@@ -131,7 +132,7 @@ const Stash = () => {
       grams: parseInt(formData.get('grams') as string),
     };
 
-    fetch(`http://localhost:8080/users/${currentUser!.user_id}/yarn/`, {
+    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newYarn),
@@ -176,7 +177,7 @@ const Stash = () => {
     };
 
     try {
-      const response = await fetch(`http://localhost:8080/users/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
+      const response = await fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedYarn),
@@ -213,7 +214,7 @@ const Stash = () => {
     };
 
     console.log('Sending tool data:', newTool);
-    fetch(`http://localhost:8080/users/${currentUser!.user_id}/tools/`, {
+    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/tools/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTool),
@@ -259,7 +260,7 @@ const Stash = () => {
   };
 
   const removeYarn = (id: string) => {
-    fetch(`http://localhost:8080/users/${currentUser!.user_id}/yarn/${id}`, {
+    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/yarn/${id}`, {
       method: 'DELETE',
     })
       .then(() => {
@@ -282,7 +283,7 @@ const Stash = () => {
       return;
     }
     
-    fetch(`http://localhost:8080/users/${currentUser!.user_id}/tools/${id}`, {
+    fetch(`${API_CONFIG.endpoints.users}/users/${currentUser!.user_id}/tools/${id}`, {
       method: 'DELETE',
     })
       .then((response) => {
@@ -343,7 +344,7 @@ const Stash = () => {
       
       for (const weight of patternWeights) {
         // Get imported patterns
-        const importedResponse = await fetch(`http://localhost:8080/patterns/?weight=${encodeURIComponent(weight)}&page=1&page_size=10`);
+        const importedResponse = await fetch(`${API_CONFIG.endpoints.patterns}/patterns/?weight=${encodeURIComponent(weight)}&page=1&page_size=10`);
         if (importedResponse.ok) {
           const importedData = await importedResponse.json();
           allPatterns = [...allPatterns, ...(importedData.patterns || [])];
@@ -351,7 +352,7 @@ const Stash = () => {
         
         // Get user-uploaded patterns for current user
         if (currentUser) {
-          const userResponse = await fetch(`http://localhost:8080/users/${currentUser.user_id}/patterns/`);
+          const userResponse = await fetch(`${API_CONFIG.endpoints.users}/users/${currentUser.user_id}/patterns/`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             // Filter user patterns by weight
@@ -855,10 +856,10 @@ const Stash = () => {
                   onClick={() => {
                     if (pattern.pattern_url) {
                       // Imported pattern - open Ravelry link
-                      window.open(pattern.pattern_url, '_blank');
+                      window.open(`${API_CONFIG.baseUrl}/view-pattern/${pattern.pattern_id}`, '_blank');
                     } else if (pattern.pdf_file) {
                       // User-uploaded pattern with PDF - open PDF
-                      window.open(`http://localhost:8080/view-pdf/${pattern.pattern_id}`, '_blank');
+                      window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
                     }
                   }}
                 >
