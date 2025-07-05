@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import API_CONFIG from '@/config/api';
 
 interface User {
   user_id: number;
@@ -32,7 +33,7 @@ const Login = () => {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8080/auth/register', {
+      const response = await fetch(`${API_CONFIG.endpoints.auth}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const Login = () => {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8080/auth/login', {
+      const response = await fetch(`${API_CONFIG.endpoints.auth}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
