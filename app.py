@@ -1709,6 +1709,66 @@ def debug_pdf_uploads():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/debug/project-types")
+def debug_project_types():
+    """Debug endpoint to check project types in database"""
+    db = SessionLocal()
+    try:
+        # Get all project types
+        project_types = db.query(ProjectType).all()
+        
+        # Get count of patterns for each project type
+        result = []
+        for pt in project_types:
+            pattern_count = db.query(SuitableFor).filter(SuitableFor.project_type_id == pt.project_type_id).count()
+            result.append({
+                "project_type_id": pt.project_type_id,
+                "name": pt.name,
+                "pattern_count": pattern_count
+            })
+        
+        db.close()
+        return {
+            "project_types": result,
+            "total_project_types": len(result)
+        }
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+@app.get("/debug/patterns-by-project-type")
+def debug_patterns_by_project_type():
+    """Debug endpoint to check patterns by project type"""
+    db = SessionLocal()
+    try:
+        # Get patterns with their project types
+        patterns = db.query(
+            Pattern.pattern_id,
+            Pattern.name,
+            ProjectType.name.label('project_type_name')
+        ).outerjoin(
+            SuitableFor, Pattern.pattern_id == SuitableFor.pattern_id
+        ).outerjoin(
+            ProjectType, SuitableFor.project_type_id == ProjectType.project_type_id
+        ).limit(50).all()
+        
+        result = []
+        for pattern in patterns:
+            result.append({
+                "pattern_id": pattern.pattern_id,
+                "name": pattern.name,
+                "project_type": pattern.project_type_name
+            })
+        
+        db.close()
+        return {
+            "patterns": result,
+            "total_patterns": len(result)
+        }
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
 @app.put("/users/{user_id}/yarn/{yarn_id}")
 def update_yarn(user_id: int, yarn_id: str, yarn: YarnCreate):
     db = SessionLocal()
