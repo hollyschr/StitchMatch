@@ -2,8 +2,11 @@
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
 
 // Debug: Log the API URL being used
+console.log('=== DEBUG INFO ===');
 console.log('API_BASE_URL:', API_BASE_URL);
 console.log('Environment variable:', (import.meta as any).env?.VITE_API_URL);
+console.log('All env vars:', (import.meta as any).env);
+console.log('==================');
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
