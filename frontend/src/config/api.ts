@@ -3,6 +3,7 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost
 
 // Debug: Log the API URL being used
 console.log('API_BASE_URL:', API_BASE_URL);
+console.log('Environment variable:', (import.meta as any).env?.VITE_API_URL);
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
