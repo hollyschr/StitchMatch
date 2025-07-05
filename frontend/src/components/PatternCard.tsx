@@ -77,6 +77,12 @@ const PatternCard = ({
 
   // Check if pattern matches the user's stash (for both search and patterns variants)
   const matchesStash = () => {
+    // Debug for all patterns to see what's happening
+    console.log(`=== matchesStash() DEBUG for "${pattern.name}" ===`);
+    console.log("Pattern required_weight:", pattern.required_weight);
+    console.log("Yarn stash length:", yarnStash.length);
+    console.log("Yarn stash:", yarnStash);
+    
     // Extra debugging for Boteh Scarf
     if (pattern.name === "Boteh Scarf") {
       console.log("=== BOTEH SCARF matchesStash() DEBUG ===");
