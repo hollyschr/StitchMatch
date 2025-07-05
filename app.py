@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -74,6 +77,15 @@ app = FastAPI()
 
 # Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
+# Custom middleware to add cache-busting headers
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -90,8 +102,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=600
 )
+
+# Add cache control middleware
+app.add_middleware(CacheControlMiddleware)
 
 # SQLAlchemy Models
 class User(Base):
