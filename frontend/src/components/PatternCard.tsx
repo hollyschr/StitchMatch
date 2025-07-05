@@ -82,6 +82,14 @@ const PatternCard = ({
     console.log("Pattern required_weight:", pattern.required_weight);
     console.log("Yarn stash length:", yarnStash.length);
     console.log("Yarn stash:", yarnStash);
+    if (yarnStash.length > 0) {
+      console.log("First yarn details:", {
+        id: yarnStash[0].id,
+        yarnName: yarnStash[0].yarnName,
+        weight: yarnStash[0].weight,
+        yardage: yarnStash[0].yardage
+      });
+    }
     
     // Extra debugging for Boteh Scarf
     if (pattern.name === "Boteh Scarf") {
@@ -120,6 +128,14 @@ const PatternCard = ({
       const possibleWeights = (weightMapping[yarn.weight] || []).map(w => w.toLowerCase());
       const requiredWeight = pattern.required_weight.toLowerCase();
       const matches = possibleWeights.includes(requiredWeight);
+      
+      // Debug weight matching for all patterns
+      console.log(`Weight matching for "${pattern.name}":`);
+      console.log(`  Yarn weight: "${yarn.weight}"`);
+      console.log(`  Pattern required weight: "${pattern.required_weight}"`);
+      console.log(`  Possible weights for ${yarn.weight}:`, possibleWeights);
+      console.log(`  Required weight (lowercase): "${requiredWeight}"`);
+      console.log(`  Matches: ${matches}`);
       
       // Extra debugging for Boteh Scarf
       if (pattern.name === "Boteh Scarf") {
