@@ -333,7 +333,14 @@ const Search = () => {
       // If stash matching is enabled and we have a user, use the stash matching endpoint
       if (shouldMatchStash && userId) {
         // Use the stash matching endpoint (matches yarn stash)
-        const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30&uploaded_only=true`;
+        const stashParams = new URLSearchParams();
+        stashParams.append('page', page.toString());
+        stashParams.append('page_size', '30');
+        if (showUploadedOnly) {
+          stashParams.append('uploaded_only', 'true');
+        }
+        
+        const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?${stashParams.toString()}`;
         
         const res = await fetch(stashUrl);
         
