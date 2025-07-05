@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -36,17 +36,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# HTTP to HTTPS redirection middleware
-@app.middleware("http")
-async def redirect_http_to_https(request: Request, call_next):
-    # Check X-Forwarded-Proto header (used by proxies like Railway)
-    forwarded_proto = request.headers.get("x-forwarded-proto")
-    if forwarded_proto == "http":
-        https_url = str(request.url).replace("http://", "https://", 1)
-        print(f"🔄 Redirecting HTTP to HTTPS: {request.url} -> {https_url}")
-        return RedirectResponse(url=https_url, status_code=301)
-    response = await call_next(request)
-    return response
+# Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
 # Add CORS middleware
 app.add_middleware(
