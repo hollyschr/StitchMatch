@@ -1558,6 +1558,12 @@ def debug_user_patterns(user_id: int):
             PatternSuggestsYarn.pattern_id == pattern.pattern_id
         ).first()
         
+        # Check if PDF file exists on disk
+        pdf_exists = False
+        if pattern.pdf_file:
+            file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+            pdf_exists = os.path.exists(file_path)
+        
         result.append({
             "pattern_id": pattern.pattern_id,
             "name": pattern.name,
@@ -1569,11 +1575,38 @@ def debug_user_patterns(user_id: int):
             "grams_max": yarn_result[4] if yarn_result else None,
             "has_yarn_data": yarn_result is not None,
             "pdf_file": pattern.pdf_file,
-            "has_pdf": pattern.pdf_file is not None
+            "has_pdf": pattern.pdf_file is not None,
+            "pdf_exists_on_disk": pdf_exists
         })
     
     db.close()
     return result
+
+@app.get("/debug/pdf-uploads")
+def debug_pdf_uploads():
+    """Debug endpoint to check PDF uploads directory"""
+    try:
+        # Check if directory exists
+        dir_exists = os.path.exists(PDF_UPLOADS_DIR)
+        
+        # List files in directory
+        files = []
+        if dir_exists:
+            files = os.listdir(PDF_UPLOADS_DIR)
+        
+        # Get current working directory
+        cwd = os.getcwd()
+        
+        return {
+            "pdf_uploads_dir": PDF_UPLOADS_DIR,
+            "dir_exists": dir_exists,
+            "files": files,
+            "file_count": len(files),
+            "current_working_directory": cwd,
+            "absolute_path": os.path.abspath(PDF_UPLOADS_DIR)
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.put("/users/{user_id}/yarn/{yarn_id}")
 def update_yarn(user_id: int, yarn_id: str, yarn: YarnCreate):
