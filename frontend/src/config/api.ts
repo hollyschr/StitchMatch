@@ -1,5 +1,5 @@
-// API configuration
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://web-production-e76a.up.railway.app';
+// API configuration - HARDCODED RAILWAY URL
+const API_BASE_URL = 'https://web-production-e76a.up.railway.app';
 
 // Debug: Log the API URL being used
 console.log('=== DEBUG INFO ===');
