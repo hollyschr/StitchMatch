@@ -79,6 +79,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://stitch-match.vercel.app",
+        "https://stitch-match-git-main-hollyschr.vercel.app",
+        "https://stitch-match-hollyschr.vercel.app",
         "http://localhost:3000",
         "http://localhost:3001", 
         "http://localhost:3002",
@@ -86,8 +88,9 @@ app.add_middleware(
         "http://192.168.1.95:3003"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # SQLAlchemy Models
@@ -938,6 +941,11 @@ def get_all_patterns(
 @app.get("/test")
 def test_endpoint():
     return {"message": "Backend is working!"}
+
+@app.get("/test-cors")
+def test_cors():
+    """Test endpoint to verify CORS headers are working"""
+    return {"message": "CORS test successful", "timestamp": "2024-01-01T00:00:00Z"}
 
 @app.get("/test-db")
 def test_database():
