@@ -1160,7 +1160,11 @@ async def view_pdf(pattern_id: int):
     file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
     if not os.path.exists(file_path):
         db.close()
-        raise HTTPException(status_code=404, detail="PDF file not found")
+        # Return a more informative error message
+        raise HTTPException(
+            status_code=404, 
+            detail="PDF file not found on server. This may be due to server restart. Please re-upload the PDF file."
+        )
     
     db.close()
     return FileResponse(

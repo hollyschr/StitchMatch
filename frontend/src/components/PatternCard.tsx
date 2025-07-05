@@ -481,7 +481,12 @@ const PatternCard = ({
                     variant="default" 
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                      const pdfWindow = window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                      if (pdfWindow) {
+                        pdfWindow.onerror = () => {
+                          alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
+                        };
+                      }
                     }}
                     className="w-full bg-black hover:bg-gray-800"
                   >
@@ -619,7 +624,14 @@ const PatternCard = ({
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank')}
+                        onClick={() => {
+                          const pdfWindow = window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                          if (pdfWindow) {
+                            pdfWindow.onerror = () => {
+                              alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
+                            };
+                          }
+                        }}
                         className="h-6 px-2 text-xs bg-black hover:bg-gray-800"
                       >
                         Open PDF
@@ -643,6 +655,9 @@ const PatternCard = ({
                       src={`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`}
                       className="w-full h-full"
                       title="PDF Pattern"
+                      onError={() => {
+                        alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
+                      }}
                     />
                   </div>
                 </div>
