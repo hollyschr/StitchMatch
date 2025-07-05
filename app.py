@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, or_, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -35,6 +35,22 @@ Base = declarative_base()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# HTTP to HTTPS redirection middleware
+@app.middleware("http")
+async def redirect_http_to_https(request: Request, call_next):
+    # Check if the request is HTTP and we're in production (Railway)
+    if (request.url.scheme == "http" and 
+        "railway" in request.url.hostname and 
+        request.url.hostname != "localhost"):
+        
+        # Construct HTTPS URL
+        https_url = str(request.url).replace("http://", "https://", 1)
+        print(f"🔄 Redirecting HTTP to HTTPS: {request.url} -> {https_url}")
+        return RedirectResponse(url=https_url, status_code=301)
+    
+    response = await call_next(request)
+    return response
 
 # Add CORS middleware
 app.add_middleware(
