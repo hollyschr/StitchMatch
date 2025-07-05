@@ -1352,17 +1352,9 @@ def get_stash_matching_patterns(
     # Execute the query
     results = base_query.all()
     
-    # Deduplicate results by pattern_id
-    seen_pattern_ids = set()
-    unique_results = []
-    for result in results:
-        if result.pattern_id not in seen_pattern_ids:
-            seen_pattern_ids.add(result.pattern_id)
-            unique_results.append(result)
-    
     # Process results and apply yardage filtering
     matching_patterns = []
-    for result in unique_results:
+    for result in results:
         pattern_weight = result.weight.lower() if result.weight else None
         yardage_min = result.yardage_min
         yardage_max = result.yardage_max
@@ -1433,13 +1425,21 @@ def get_stash_matching_patterns(
                 price=price_display
             ))
     
+    # Deduplicate the final results by pattern_id
+    seen_pattern_ids = set()
+    unique_matching_patterns = []
+    for pattern in matching_patterns:
+        if pattern.pattern_id not in seen_pattern_ids:
+            seen_pattern_ids.add(pattern.pattern_id)
+            unique_matching_patterns.append(pattern)
+    
     db.close()
     
     # Calculate pagination info
     total_pages = (total_matching + page_size - 1) // page_size
     
     return PaginatedPatternResponse(
-        patterns=matching_patterns,
+        patterns=unique_matching_patterns,
         pagination={
             "page": page,
             "page_size": page_size,
