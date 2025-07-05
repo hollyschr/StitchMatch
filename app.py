@@ -268,6 +268,7 @@ def login_user(user: UserLogin):
         profile_photo=db_user.profile_photo
     )
 
+@app.get("/users/{user_id}/patterns", response_model=List[PatternResponse])
 @app.get("/users/{user_id}/patterns/", response_model=List[PatternResponse])
 def get_user_patterns(user_id: int):
     db = SessionLocal()
@@ -627,6 +628,7 @@ def add_yarn(user_id: int, yarn: YarnCreate):
     finally:
         db.close()
 
+@app.get("/users/{user_id}/tools")
 @app.get("/users/{user_id}/tools/")
 def get_user_tools(user_id: int):
     db = SessionLocal()
@@ -745,6 +747,7 @@ def delete_user_tool(user_id: int, tool_id: int):
     db.close()
     return {"message": "Tool deleted successfully"}
 
+@app.get("/patterns", response_model=PaginatedPatternResponse)
 @app.get("/patterns/", response_model=PaginatedPatternResponse)
 def get_all_patterns(
     page: int = 1,
@@ -1358,6 +1361,7 @@ def get_compatible_weights(pattern_weight):
     }
     return weight_mapping.get(pattern_weight, [])
 
+@app.get("/users/{user_id}/yarn")
 @app.get("/users/{user_id}/yarn/")
 def get_user_yarn(user_id: int):
     db = SessionLocal()
@@ -1527,6 +1531,7 @@ def remove_favorite(user_id: int, pattern_id: int):
     
     return {"message": "Pattern removed from favorites"}
 
+@app.get("/users/{user_id}/favorites", response_model=PaginatedPatternResponse)
 @app.get("/users/{user_id}/favorites/", response_model=PaginatedPatternResponse)
 def get_user_favorites(
     user_id: int,
@@ -1667,6 +1672,7 @@ def check_favorite(user_id: int, pattern_id: int):
     
     return {"is_favorited": favorite is not None}
 
+@app.get("/patterns/random", response_model=List[PatternResponse])
 @app.get("/patterns/random/", response_model=List[PatternResponse])
 def get_random_patterns():
     db = SessionLocal()
