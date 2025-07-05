@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Scissors, LogOut, User, Heart } from 'lucide-react';
+import { CircleDot, LogOut, User, Heart } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface User {
@@ -33,7 +33,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-            <Scissors className="h-8 w-8 text-green-600" />
+            <CircleDot className="h-8 w-8 text-green-600" />
             <h1 className="text-2xl font-bold text-gray-900">StitchMatch</h1>
           </div>
           <nav className="flex items-center space-x-4">
