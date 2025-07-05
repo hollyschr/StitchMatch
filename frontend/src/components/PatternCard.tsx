@@ -77,32 +77,7 @@ const PatternCard = ({
 
   // Check if pattern matches the user's stash (for both search and patterns variants)
   const matchesStash = () => {
-    // Debug for all patterns to see what's happening
-    console.log(`=== matchesStash() DEBUG for "${pattern.name}" ===`);
-    console.log("Pattern required_weight:", pattern.required_weight);
-    console.log("Yarn stash length:", yarnStash.length);
-    console.log("Yarn stash:", yarnStash);
-    if (yarnStash.length > 0) {
-      console.log("First yarn details:", {
-        id: yarnStash[0].id,
-        yarnName: yarnStash[0].yarnName,
-        weight: yarnStash[0].weight,
-        yardage: yarnStash[0].yardage
-      });
-    }
-    
-    // Extra debugging for Boteh Scarf
-    if (pattern.name === "Boteh Scarf") {
-      console.log("=== BOTEH SCARF matchesStash() DEBUG ===");
-      console.log("Pattern required_weight:", pattern.required_weight);
-      console.log("Yarn stash length:", yarnStash.length);
-      console.log("Yarn stash:", yarnStash);
-    }
-    
     if (!pattern.required_weight || yarnStash.length === 0) {
-      if (pattern.name === "Boteh Scarf") {
-        console.log("Boteh Scarf: No required_weight or empty stash, returning false");
-      }
       return false;
     }
 
@@ -119,45 +94,57 @@ const PatternCard = ({
       'aran': ['Aran (8 wpi)', 'Aran'],
       'bulky': ['Bulky (7 wpi)', 'Bulky'],
       'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
-      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo']
+      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+      // Add full weight strings as keys for direct lookup
+      'Lace': ['Lace'],
+      'Cobweb': ['Cobweb'],
+      'Thread': ['Thread'],
+      'Light Fingering': ['Light Fingering'],
+      'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+      'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+      'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+      'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+      'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+      'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+      'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
     };
 
     // Calculate total yardage for the required weight class
     const matchingYarns = yarnStash.filter(yarn => {
-      // Check if this yarn's weight matches the pattern's required weight (case-insensitive)
-      const possibleWeights = (weightMapping[yarn.weight] || []).map(w => w.toLowerCase());
-      const requiredWeight = pattern.required_weight.toLowerCase();
-      const matches = possibleWeights.includes(requiredWeight);
+      // Normalize weights for comparison
+      const yarnWeightLower = yarn.weight.toLowerCase();
+      const patternWeightLower = pattern.required_weight.toLowerCase();
       
-      // Debug weight matching for all patterns
-      console.log(`Weight matching for "${pattern.name}":`);
-      console.log(`  Yarn weight: "${yarn.weight}"`);
-      console.log(`  Pattern required weight: "${pattern.required_weight}"`);
-      console.log(`  Possible weights for ${yarn.weight}:`, possibleWeights);
-      console.log(`  Required weight (lowercase): "${requiredWeight}"`);
-      console.log(`  Matches: ${matches}`);
-      
-      // Extra debugging for Boteh Scarf
-      if (pattern.name === "Boteh Scarf") {
-        console.log(`Boteh Scarf: Yarn ${yarn.yarnName} (${yarn.weight}) matches ${pattern.required_weight}: ${matches}`);
-        console.log(`Boteh Scarf: Possible weights for ${yarn.weight}:`, possibleWeights);
+      // Check if this yarn's weight matches the pattern's required weight
+      // First, try direct mapping from stash weight to pattern weights
+      const possiblePatternWeights = (weightMapping[yarn.weight] || []).map(w => w.toLowerCase());
+      if (possiblePatternWeights.includes(patternWeightLower)) {
+        return true;
       }
       
-      return matches;
+      // Second, try reverse mapping - check if pattern weight maps to stash weight
+      const possibleStashWeights = (weightMapping[pattern.required_weight] || []).map(w => w.toLowerCase());
+      if (possibleStashWeights.includes(yarnWeightLower)) {
+        return true;
+      }
+      
+      // Third, try direct string matching (case-insensitive)
+      if (yarnWeightLower === patternWeightLower) {
+        return true;
+      }
+      
+      // Fourth, try partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+      if (patternWeightLower.includes(yarnWeightLower) || yarnWeightLower.includes(patternWeightLower)) {
+        return true;
+      }
+      
+      return false;
     });
     
     const totalYardage = matchingYarns.reduce((sum, yarn) => sum + yarn.yardage, 0);
-    
-    // Extra debugging for Boteh Scarf
-    if (pattern.name === "Boteh Scarf") {
-      console.log("Boteh Scarf: Total matching yardage:", totalYardage);
-      console.log("Boteh Scarf: Matching yarns:", matchingYarns);
-    }
 
     if (totalYardage === 0) {
-      if (pattern.name === "Boteh Scarf") {
-        console.log("Boteh Scarf: No matching yarns found, returning false");
-      }
       return false; // No yarn in this weight class
     }
 
@@ -165,65 +152,27 @@ const PatternCard = ({
     const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
     const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
     
-    // Extra debugging for Boteh Scarf
-    if (pattern.name === "Boteh Scarf") {
-      console.log("Boteh Scarf: Yardage requirements:", { min: pattern.yardage_min, max: pattern.yardage_max });
-      console.log("Boteh Scarf: Has min yardage:", hasMinYardage);
-      console.log("Boteh Scarf: Has max yardage:", hasMaxYardage);
-    }
-    
     if (hasMinYardage && hasMaxYardage) {
       // Both min and max yardage - stash must be at least as much as max
-      const matches = totalYardage >= pattern.yardage_max;
-      if (pattern.name === "Boteh Scarf") {
-        console.log(`Boteh Scarf: Min/Max yardage check: ${totalYardage} >= ${pattern.yardage_max} = ${matches}`);
-      }
-      return matches;
+      return totalYardage >= pattern.yardage_max;
     }
     
     if (hasMinYardage) {
       // Only min yardage - stash must have at least this much
-      const matches = totalYardage >= pattern.yardage_min;
-      if (pattern.name === "Boteh Scarf") {
-        console.log(`Boteh Scarf: Min yardage check: ${totalYardage} >= ${pattern.yardage_min} = ${matches}`);
-      }
-      return matches;
+      return totalYardage >= pattern.yardage_min;
     }
     
     if (hasMaxYardage) {
       // Only max yardage - stash must be at least as much as max
-      const matches = totalYardage >= pattern.yardage_max;
-      if (pattern.name === "Boteh Scarf") {
-        console.log(`Boteh Scarf: Max yardage check: ${totalYardage} >= ${pattern.yardage_max} = ${matches}`);
-      }
-      return matches;
+      return totalYardage >= pattern.yardage_max;
     }
     
-    if (pattern.name === "Boteh Scarf") {
-      console.log("Boteh Scarf: No yardage requirements found, returning false");
-    }
     return false; // Shouldn't reach here, but just in case
   };
 
   // If we're in stash matching mode, all patterns shown should be green
   // Otherwise, use the individual pattern matching logic
   const isStashMatch = isStashMatchingMode || matchesStash();
-  
-  // Debug: Log stash matching results
-  if (pattern.name && yarnStash.length > 0) {
-    console.log(`Pattern "${pattern.name}": isStashMatchingMode=${isStashMatchingMode}, matchesStash()=${matchesStash()}, isStashMatch=${isStashMatch}`);
-    
-    // Extra debugging for Boteh Scarf
-    if (pattern.name === "Boteh Scarf") {
-      console.log("=== BOTEH SCARF DEBUG ===");
-      console.log("Pattern data:", pattern);
-      console.log("Yarn stash:", yarnStash);
-      console.log("Required weight:", pattern.required_weight);
-      console.log("Yardage min:", pattern.yardage_min);
-      console.log("Yardage max:", pattern.yardage_max);
-      console.log("=== END BOTEH SCARF DEBUG ===");
-    }
-  }
 
   const handleCardClick = () => {
     if (variant === 'patterns') {

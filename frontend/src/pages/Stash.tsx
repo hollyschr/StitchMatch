@@ -342,7 +342,20 @@ const Stash = () => {
         'aran': ['Aran (8 wpi)', 'Aran'],
         'bulky': ['Bulky (7 wpi)', 'Bulky'],
         'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
-        'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo']
+        'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+        // Add full weight strings as keys for direct lookup
+        'Lace': ['Lace'],
+        'Cobweb': ['Cobweb'],
+        'Thread': ['Thread'],
+        'Light Fingering': ['Light Fingering'],
+        'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+        'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+        'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+        'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+        'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+        'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+        'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+        'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
       };
       
       const patternWeights = weightMapping[yarn.weight] || [yarn.weight];
@@ -366,9 +379,30 @@ const Stash = () => {
             // Filter user patterns by weight
             const matchingUserPatterns = userData.filter((pattern: any) => {
               if (!pattern.required_weight) return false;
-              return patternWeights.some(w => 
-                pattern.required_weight.toLowerCase().includes(w.toLowerCase())
+              
+              // Try multiple matching strategies
+              const patternWeightLower = pattern.required_weight.toLowerCase();
+              
+              // 1. Direct match with pattern weights
+              const directMatch = patternWeights.some(w => 
+                w.toLowerCase() === patternWeightLower
               );
+              if (directMatch) return true;
+              
+              // 2. Partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+              const partialMatch = patternWeights.some(w => 
+                patternWeightLower.includes(w.toLowerCase()) || w.toLowerCase().includes(patternWeightLower)
+              );
+              if (partialMatch) return true;
+              
+              // 3. Reverse mapping - check if pattern weight maps to stash weight
+              const reverseWeights = weightMapping[pattern.required_weight] || [];
+              const reverseMatch = reverseWeights.some(w => 
+                w.toLowerCase() === yarn.weight.toLowerCase()
+              );
+              if (reverseMatch) return true;
+              
+              return false;
             });
             allPatterns = [...allPatterns, ...matchingUserPatterns];
           }

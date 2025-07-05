@@ -186,17 +186,30 @@ const Search = () => {
       'aran': ['Aran (8 wpi)', 'Aran'],
       'bulky': ['Bulky (7 wpi)', 'Bulky'],
       'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
-      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo']
+      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+      // Add full weight strings as keys for direct lookup
+      'Lace': ['Lace'],
+      'Cobweb': ['Cobweb'],
+      'Thread': ['Thread'],
+      'Light Fingering': ['Light Fingering'],
+      'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+      'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+      'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+      'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+      'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+      'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+      'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
     };
     
-    return weightMapping[stashWeight] || [];
+    return weightMapping[stashWeight] || [stashWeight];
   }, []);
 
   // Filter patterns based on stash yardage
   const filterPatternsByStash = useCallback((patterns: Pattern[]) => {
     const stashYardageByWeight = calculateStashYardageByWeight();
     
-    console.log('=== STASH MATCHING DEBUG ===');
+
     console.log('Yarn stash:', yarnStash);
     console.log('Stash yardage by weight:', stashYardageByWeight);
     console.log('Available weight classes in stash:', Object.keys(stashYardageByWeight));
@@ -213,9 +226,18 @@ const Search = () => {
       
       for (const stashWeight in stashYardageByWeight) {
         const patternWeights = mapStashWeightToPatternWeight(stashWeight);
+        // Check for exact match first
         if (patternWeights.includes(pattern.required_weight)) {
           stashYardage += stashYardageByWeight[stashWeight];
           hasMatchingWeight = true;
+        } else {
+          // Try case-insensitive matching
+          const patternWeightLower = pattern.required_weight.toLowerCase();
+          const matchingWeight = patternWeights.find(w => w.toLowerCase() === patternWeightLower);
+          if (matchingWeight) {
+            stashYardage += stashYardageByWeight[stashWeight];
+            hasMatchingWeight = true;
+          }
         }
       }
       
@@ -260,13 +282,13 @@ const Search = () => {
     });
     
     console.log(`Filtered ${patterns.length} patterns down to ${result.length} matching patterns`);
-    console.log('=== END STASH MATCHING DEBUG ===');
+
     
     return result;
   }, [yarnStash, calculateStashYardageByWeight, mapStashWeightToPatternWeight]);
 
   const performSearch = useCallback(async (formData: FormData | null = null, isRandom = false, shuffle = false, stashMatching?: boolean, page: number = 1, append: boolean = false, isInitialSearch: boolean = true) => {
-    console.log('=== PERFORM SEARCH DEBUG ===');
+
     console.log('formData:', formData);
     console.log('isRandom:', isRandom);
     console.log('shuffle:', shuffle);
@@ -296,10 +318,9 @@ const Search = () => {
       if (isRandom) {
         // Use the new random endpoint
         const randomUrl = `${API_CONFIG.endpoints.patterns}/random/`;
-        console.log('DEBUG: Random search URL:', randomUrl);
-        console.log('DEBUG: About to fetch random URL');
+        
         const res = await fetch(randomUrl);
-        console.log('DEBUG: Random fetch completed, status:', res.status);
+
         const patterns = await res.json();
         setSearchResults(patterns);
         setIsRandomMode(true);
@@ -312,18 +333,16 @@ const Search = () => {
       // If stash matching is enabled and we have a user, use the stash matching endpoint
       if (shouldMatchStash && userId) {
         // Use the stash matching endpoint (matches yarn stash)
-        let stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`;
-        if (showUploadedOnly) {
-          stashUrl += '&uploaded_only=true';
-        }
-        console.log('DEBUG: Stash matching URL:', stashUrl);
-        console.log('DEBUG: About to fetch stash URL');
-        const res = await fetch(stashUrl);
-        console.log('DEBUG: Stash fetch completed, status:', res.status);
-        response = await res.json();
+        const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30&uploaded_only=true`;
         
-        // Set stash matching mode to true since we're using the stash matching endpoint
-        setIsStashMatchingMode(true);
+        const res = await fetch(stashUrl);
+        
+        if (res.ok) {
+          response = await res.json();
+          
+          // Set stash matching mode to true since we're using the stash matching endpoint
+          setIsStashMatchingMode(true);
+        }
       } else {
         // Use the regular patterns endpoint
         setIsStashMatchingMode(false);
@@ -352,8 +371,10 @@ const Search = () => {
         console.log('DEBUG: Regular search URL:', searchUrl);
         console.log('DEBUG: About to fetch search URL');
         const res = await fetch(searchUrl);
-        console.log('DEBUG: Search fetch completed, status:', res.status);
-        response = await res.json();
+        
+        if (res.ok) {
+          response = await res.json();
+        }
       }
       
       // Handle pagination
