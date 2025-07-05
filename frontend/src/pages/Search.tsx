@@ -322,48 +322,75 @@ const Search = () => {
       let response: SearchResponse;
       
       if (isRandom) {
-        // For random search, we'll use the regular search endpoint with constraints
-        // and then shuffle the results to get random patterns
+        // For random search, we'll fetch multiple pages and shuffle across all results
         setIsRandomMode(true);
-        
-        // Use the regular patterns endpoint with current constraints
-        // Set stash matching mode based on whether stash matching is enabled
         setIsStashMatchingMode(shouldMatchStash);
         
+        let allPatterns: Pattern[] = [];
+        let totalPages = 1;
+        
+        // First, get the total count to determine how many pages to fetch
+        const countParams = new URLSearchParams();
+        countParams.append('page', '1');
+        countParams.append('page_size', '1');
         if (formData) {
-          setLastFormData(formData);
-          const params = new URLSearchParams();
-          params.append('page', page.toString());
-          params.append('page_size', '100'); // Get more results for better randomization
-          if (formData.get('projectType') && formData.get('projectType') !== 'any') params.append('project_type', formData.get('projectType') as string);
-          if (formData.get('craftType') && formData.get('craftType') !== 'any') params.append('craft_type', formData.get('craftType') as string);
-          if (formData.get('weight') && formData.get('weight') !== 'any') params.append('weight', formData.get('weight') as string);
-          if (formData.get('designer') && formData.get('designer') !== '') params.append('designer', formData.get('designer') as string);
+          if (formData.get('projectType') && formData.get('projectType') !== 'any') countParams.append('project_type', formData.get('projectType') as string);
+          if (formData.get('craftType') && formData.get('craftType') !== 'any') countParams.append('craft_type', formData.get('craftType') as string);
+          if (formData.get('weight') && formData.get('weight') !== 'any') countParams.append('weight', formData.get('weight') as string);
+          if (formData.get('designer') && formData.get('designer') !== '') countParams.append('designer', formData.get('designer') as string);
           if (showUploadedOnly) {
-            params.append('uploaded_only', 'true');
-            if (userId !== null) params.append('user_id', String(userId));
+            countParams.append('uploaded_only', 'true');
+            if (userId !== null) countParams.append('user_id', String(userId));
           }
-          if (showFreeOnly) params.append('free_only', 'true');
-          // Add timestamp to force cache invalidation
+          if (showFreeOnly) countParams.append('free_only', 'true');
+        }
+        countParams.append('_t', Date.now().toString());
+        
+        const countUrl = `${API_CONFIG.endpoints.patterns}?${countParams.toString()}`;
+        const countRes = await fetch(countUrl);
+        
+        if (countRes.ok) {
+          const countData = await countRes.json();
+          totalPages = Math.min(countData.pagination.pages, 10); // Limit to 10 pages max for performance
+        }
+        
+        // Fetch patterns from multiple pages
+        const pageSize = 100;
+        const pagesToFetch = Math.min(totalPages, 5); // Fetch up to 5 pages for better randomization
+        
+        for (let i = 1; i <= pagesToFetch; i++) {
+          const params = new URLSearchParams();
+          params.append('page', i.toString());
+          params.append('page_size', pageSize.toString());
+          if (formData) {
+            if (formData.get('projectType') && formData.get('projectType') !== 'any') params.append('project_type', formData.get('projectType') as string);
+            if (formData.get('craftType') && formData.get('craftType') !== 'any') params.append('craft_type', formData.get('craftType') as string);
+            if (formData.get('weight') && formData.get('weight') !== 'any') params.append('weight', formData.get('weight') as string);
+            if (formData.get('designer') && formData.get('designer') !== '') params.append('designer', formData.get('designer') as string);
+            if (showUploadedOnly) {
+              params.append('uploaded_only', 'true');
+              if (userId !== null) params.append('user_id', String(userId));
+            }
+            if (showFreeOnly) params.append('free_only', 'true');
+          }
           params.append('_t', Date.now().toString());
-          query = "?" + params.toString();
-        } else {
-          query = `?page=${page}&page_size=100&_t=${Date.now()}`;
+          
+          const searchUrl = `${API_CONFIG.endpoints.patterns}?${params.toString()}`;
+          const res = await fetch(searchUrl);
+          
+          if (res.ok) {
+            const pageData = await res.json();
+            allPatterns = [...allPatterns, ...pageData.patterns];
+          }
         }
         
-        const searchUrl = `${API_CONFIG.endpoints.patterns}${query}`;
-        const res = await fetch(searchUrl);
-        
-        if (res.ok) {
-          response = await res.json();
-          // Shuffle the results and take 3 random patterns
-          const shuffledPatterns = response.patterns.sort(() => Math.random() - 0.5).slice(0, 3);
-          setSearchResults(shuffledPatterns);
-          setPaginationInfo(null); // No pagination for random results
-          setIsLoading(false);
-          toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} for you!` });
-          return;
-        }
+        // Shuffle all collected patterns and take 3 random ones
+        const shuffledPatterns = allPatterns.sort(() => Math.random() - 0.5).slice(0, 3);
+        setSearchResults(shuffledPatterns);
+        setPaginationInfo(null); // No pagination for random results
+        setIsLoading(false);
+        toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} from ${allPatterns.length} total patterns!` });
+        return;
       }
       
       // If stash matching is enabled and we have a user, use the stash matching endpoint
