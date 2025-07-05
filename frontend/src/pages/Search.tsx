@@ -81,12 +81,43 @@ const Search = () => {
   const [pageInput, setPageInput] = useState('');
   const pageInputRef = useRef<HTMLInputElement>(null);
 
-  // Load data from localStorage
+  // Load data from localStorage and API
   useEffect(() => {
     const savedYarn = localStorage.getItem('yarnStash');
     const savedHistory = localStorage.getItem('searchHistory');
     if (savedYarn) setYarnStash(JSON.parse(savedYarn));
     if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
+    
+    // If no yarn in localStorage, fetch from API
+    if (!savedYarn) {
+      const loadYarnStash = async () => {
+        const savedUser = localStorage.getItem('currentUser');
+        if (!savedUser) return;
+        
+        try {
+          const user = JSON.parse(savedUser);
+          const response = await fetch(`${API_CONFIG.endpoints.users}/${user.user_id}/yarn`);
+          if (response.ok) {
+            const data = await response.json();
+            const transformedYarn = data.yarn ? data.yarn.map((yarn: any) => ({
+              id: yarn.yarn_id,
+              yarnName: yarn.yarn_name,
+              brand: yarn.brand,
+              weight: yarn.weight,
+              fiber: yarn.fiber,
+              yardage: yarn.yardage,
+              grams: yarn.grams
+            })) : [];
+            setYarnStash(transformedYarn);
+            localStorage.setItem('yarnStash', JSON.stringify(transformedYarn));
+          }
+        } catch (error) {
+          console.error('Error fetching yarn stash:', error);
+        }
+      };
+      
+      loadYarnStash();
+    }
   }, []);
 
   // Load favorited patterns
