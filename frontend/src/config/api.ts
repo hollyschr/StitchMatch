@@ -21,4 +21,11 @@ export const API_CONFIG = {
   }
 };
 
+// Debug: Log the constructed endpoints
+console.log('=== API ENDPOINTS DEBUG ===');
+console.log('patterns endpoint:', API_CONFIG.endpoints.patterns);
+console.log('users endpoint:', API_CONFIG.endpoints.users);
+console.log('favorites endpoint:', API_CONFIG.endpoints.favorites);
+console.log('==========================');
+
 export default API_CONFIG; 

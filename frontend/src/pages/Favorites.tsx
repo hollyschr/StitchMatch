@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import PatternCard from '@/components/PatternCard';
 import { useNavigate } from 'react-router-dom';
+import API_CONFIG from '@/config/api';
 
 interface Pattern {
   pattern_id: number;
@@ -80,7 +81,7 @@ const Favorites = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/?page=${page}&page_size=30`);
+              const response = await fetch(`${API_CONFIG.endpoints.favorites}/${user.user_id}/favorites/?page=${page}&page_size=30`);
       if (!response.ok) {
         throw new Error('Failed to load favorites');
       }
@@ -114,7 +115,7 @@ const Favorites = () => {
 
     try {
       // Remove from favorites
-      const response = await fetch(`http://localhost:8080/users/${user.user_id}/favorites/${patternId}/`, {
+      const response = await fetch(`${API_CONFIG.endpoints.favorites}/${user.user_id}/favorites/${patternId}/`, {
         method: 'DELETE',
       });
 

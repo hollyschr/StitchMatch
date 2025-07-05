@@ -255,7 +255,9 @@ const Search = () => {
       
       if (isRandom) {
         // Use the new random endpoint
-        const res = await fetch(`${API_CONFIG.endpoints.patterns}/random/`);
+        const randomUrl = `${API_CONFIG.endpoints.patterns}/random/`;
+        console.log('DEBUG: Random search URL:', randomUrl);
+        const res = await fetch(randomUrl);
         const patterns = await res.json();
         setSearchResults(patterns);
         setIsRandomMode(true);
@@ -268,7 +270,9 @@ const Search = () => {
       // If stash matching is enabled and we have a user, use the stash matching endpoint
       if (shouldMatchStash && userId) {
         // Use the stash matching endpoint (matches yarn stash)
-        const res = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`);
+        const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`;
+        console.log('DEBUG: Stash matching URL:', stashUrl);
+        const res = await fetch(stashUrl);
         response = await res.json();
         
         // Set stash matching mode to true since we're using the stash matching endpoint
@@ -297,7 +301,9 @@ const Search = () => {
           query = `?page=${page}&page_size=30`;
         }
         
-        const res = await fetch(`${API_CONFIG.endpoints.patterns}${query}`);
+        const searchUrl = `${API_CONFIG.endpoints.patterns}${query}`;
+        console.log('DEBUG: Regular search URL:', searchUrl);
+        const res = await fetch(searchUrl);
         response = await res.json();
       }
       
