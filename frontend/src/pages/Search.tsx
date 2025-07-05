@@ -327,7 +327,8 @@ const Search = () => {
         setIsRandomMode(true);
         
         // Use the regular patterns endpoint with current constraints
-        setIsStashMatchingMode(false);
+        // Set stash matching mode based on whether stash matching is enabled
+        setIsStashMatchingMode(shouldMatchStash);
         
         if (formData) {
           setLastFormData(formData);
