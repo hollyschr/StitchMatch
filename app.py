@@ -1165,7 +1165,8 @@ def debug_patterns_yardage():
 def get_stash_matching_patterns(
     user_id: int,
     page: int = 1,
-    page_size: int = 30
+    page_size: int = 30,
+    uploaded_only: Optional[bool] = None
 ):
     # Validate pagination parameters
     if page < 1:
@@ -1202,8 +1203,13 @@ def get_stash_matching_patterns(
             stash_yardage_by_weight[weight] = 0
         stash_yardage_by_weight[weight] += stash_item.yardage
     
-    # Get ALL patterns (not just those with PatternSuggestsYarn entries)
-    all_patterns = db.query(Pattern).all()
+    # Get patterns based on uploaded_only filter
+    if uploaded_only:
+        # Only get patterns uploaded by this user
+        all_patterns = db.query(Pattern).join(OwnsPattern).filter(OwnsPattern.user_id == user_id).all()
+    else:
+        # Get ALL patterns (not just those with PatternSuggestsYarn entries)
+        all_patterns = db.query(Pattern).all()
     
     matching_patterns = []
     total_matching = 0

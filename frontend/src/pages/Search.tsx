@@ -281,7 +281,10 @@ const Search = () => {
       // If stash matching is enabled and we have a user, use the stash matching endpoint
       if (shouldMatchStash && userId) {
         // Use the stash matching endpoint (matches yarn stash)
-        const stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`;
+        let stashUrl = `${API_CONFIG.endpoints.patterns}/stash-match/${userId}?page=${page}&page_size=30`;
+        if (showUploadedOnly) {
+          stashUrl += '&uploaded_only=true';
+        }
         console.log('DEBUG: Stash matching URL:', stashUrl);
         console.log('DEBUG: About to fetch stash URL');
         const res = await fetch(stashUrl);
