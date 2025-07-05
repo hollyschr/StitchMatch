@@ -404,7 +404,18 @@ const Search = () => {
         // Shuffle all collected patterns and take 3 random ones
         const shuffledPatterns = allPatterns.sort(() => Math.random() - 0.5).slice(0, 3);
         setSearchResults(shuffledPatterns);
-        setPaginationInfo(null); // No pagination for random results
+        // Preserve pagination info instead of clearing it
+        if (!paginationInfo) {
+          // If no pagination info exists, create a minimal one to preserve page state
+          setPaginationInfo({
+            page: currentPage,
+            page_size: 30,
+            total: allPatterns.length,
+            pages: Math.ceil(allPatterns.length / 30),
+            has_next: false,
+            has_prev: false
+          });
+        }
         setIsLoading(false);
         toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} from ${allPatterns.length} total patterns!` });
         return;
@@ -573,6 +584,110 @@ const Search = () => {
     }
     
     performSearch(formData, true, false, isMatchingStash, 1, false, true);
+  };
+
+  const handleShuffleResults = async () => {
+    // This function shuffles results without changing the current page state
+    if (!lastFormData) {
+      toast({ title: "No search to shuffle", description: "Please perform a search first." });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Get current user from localStorage
+      const savedUser = localStorage.getItem('currentUser');
+      let userId: number | null = null;
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          userId = user.user_id;
+        } catch {}
+      }
+      
+      // First, get the total count to determine how many pages to fetch
+      const countParams = new URLSearchParams();
+      countParams.append('page', '1');
+      countParams.append('page_size', '1');
+      if (lastFormData.get('projectType') && lastFormData.get('projectType') !== 'any') countParams.append('project_type', lastFormData.get('projectType') as string);
+      if (lastFormData.get('craftType') && lastFormData.get('craftType') !== 'any') countParams.append('craft_type', lastFormData.get('craftType') as string);
+      if (lastFormData.get('weight') && lastFormData.get('weight') !== 'any') countParams.append('weight', lastFormData.get('weight') as string);
+      if (lastFormData.get('designer') && lastFormData.get('designer') !== '') countParams.append('designer', lastFormData.get('designer') as string);
+      if (showUploadedOnly) {
+        countParams.append('uploaded_only', 'true');
+        if (userId !== null) countParams.append('user_id', String(userId));
+      }
+      if (showFreeOnly) countParams.append('free_only', 'true');
+      countParams.append('_t', Date.now().toString());
+      
+      const countUrl = `${API_CONFIG.endpoints.patterns}?${countParams.toString()}`;
+      const countRes = await fetch(countUrl);
+      
+      let totalPages = 1;
+      if (countRes.ok) {
+        const countData = await countRes.json();
+        totalPages = Math.min(countData.pagination.pages, 10); // Limit to 10 pages max for performance
+      }
+      
+      // Fetch patterns from multiple random pages across the entire range
+      const pageSize = 100;
+      const pagesToFetch = Math.min(totalPages, 5); // Fetch up to 5 pages for better randomization
+      
+      // Generate random page numbers to fetch from across the entire range
+      const randomPages = [];
+      for (let i = 0; i < pagesToFetch; i++) {
+        const randomPage = Math.floor(Math.random() * totalPages) + 1;
+        if (!randomPages.includes(randomPage)) {
+          randomPages.push(randomPage);
+        }
+      }
+      
+      // If we don't have enough unique random pages, add more
+      while (randomPages.length < pagesToFetch && randomPages.length < totalPages) {
+        const randomPage = Math.floor(Math.random() * totalPages) + 1;
+        if (!randomPages.includes(randomPage)) {
+          randomPages.push(randomPage);
+        }
+      }
+      
+      let allPatterns: Pattern[] = [];
+      
+      for (let i = 0; i < randomPages.length; i++) {
+        const params = new URLSearchParams();
+        params.append('page', randomPages[i].toString());
+        params.append('page_size', pageSize.toString());
+        if (lastFormData.get('projectType') && lastFormData.get('projectType') !== 'any') params.append('project_type', lastFormData.get('projectType') as string);
+        if (lastFormData.get('craftType') && lastFormData.get('craftType') !== 'any') params.append('craft_type', lastFormData.get('craftType') as string);
+        if (lastFormData.get('weight') && lastFormData.get('weight') !== 'any') params.append('weight', lastFormData.get('weight') as string);
+        if (lastFormData.get('designer') && lastFormData.get('designer') !== '') params.append('designer', lastFormData.get('designer') as string);
+        if (showUploadedOnly) {
+          params.append('uploaded_only', 'true');
+          if (userId !== null) params.append('user_id', String(userId));
+        }
+        if (showFreeOnly) params.append('free_only', 'true');
+        params.append('_t', Date.now().toString());
+        
+        const searchUrl = `${API_CONFIG.endpoints.patterns}?${params.toString()}`;
+        const res = await fetch(searchUrl);
+        
+        if (res.ok) {
+          const pageData = await res.json();
+          allPatterns = [...allPatterns, ...pageData.patterns];
+        }
+      }
+      
+      // Shuffle all collected patterns and take 3 random ones
+      const shuffledPatterns = allPatterns.sort(() => Math.random() - 0.5).slice(0, 3);
+      setSearchResults(shuffledPatterns);
+      // Don't change pagination state - keep current page
+      setIsLoading(false);
+      toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} from ${allPatterns.length} total patterns!` });
+      
+    } catch (error) {
+      setIsLoading(false);
+      toast({ title: "Error shuffling patterns" });
+    }
   };
 
   const handleMatchStash = useCallback(() => {
@@ -928,7 +1043,7 @@ const Search = () => {
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => performSearch(lastFormData, false, true, isMatchingStash, 1, false, false)}
+                    onClick={handleShuffleResults}
                   >
                     <Shuffle className="h-4 w-4 mr-2" />
                     Shuffle Results
