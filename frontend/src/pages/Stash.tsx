@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -54,6 +54,8 @@ const Stash = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalPatterns, setTotalPatterns] = useState(0);
+  const [pageInput, setPageInput] = useState('');
+  const pageInputRef = useRef<HTMLInputElement>(null);
   const [newToolType, setNewToolType] = useState<string>('');
   const [newToolSize, setNewToolSize] = useState<string>('');
 
@@ -333,8 +335,9 @@ const Stash = () => {
     setCurrentPage(page);
     
     try {
-      // Use the optimized stash matching endpoint
-      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=${page}&page_size=20`);
+      // Use the optimized stash matching endpoint with uploaded_only parameter
+      const uploadedOnlyParam = showUploadedOnly ? '&uploaded_only=true' : '';
+      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=${page}&page_size=20${uploadedOnlyParam}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -357,13 +360,36 @@ const Stash = () => {
     }
   };
 
+  const loadNextPage = () => {
+    if (currentPage < totalPages && selectedYarn) {
+      fetchMatchedPatterns(selectedYarn, currentPage + 1);
+    }
+  };
+
+  const loadPrevPage = () => {
+    if (currentPage > 1 && selectedYarn) {
+      fetchMatchedPatterns(selectedYarn, currentPage - 1);
+    }
+  };
+
+  const loadPage = (pageNum: number) => {
+    if (selectedYarn && pageNum >= 1 && pageNum <= totalPages) {
+      fetchMatchedPatterns(selectedYarn, pageNum);
+    }
+  };
+
   const knittingNeedles = getToolsByType('knitting-needle');
   const crochetHooks = getToolsByType('crochet-hook');
 
-  // Filter patterns based on checkbox state
-  const filteredPatterns = showUploadedOnly 
-    ? matchedPatterns.filter(pattern => !pattern.pattern_url) // User-uploaded patterns don't have pattern_url
-    : matchedPatterns;
+  // Refetch patterns when uploaded_only filter changes
+  useEffect(() => {
+    if (selectedYarn && isPatternsDialogOpen) {
+      fetchMatchedPatterns(selectedYarn, 1); // Reset to page 1 when filter changes
+    }
+  }, [showUploadedOnly]);
+
+  // Filter patterns based on checkbox state (now handled by backend)
+  const filteredPatterns = matchedPatterns;
 
   console.log('Stash component rendering, currentUser:', currentUser);
   console.log('Yarn stash:', yarnStash);
@@ -884,28 +910,90 @@ const Stash = () => {
                 ))}
               </div>
               
-              {/* Pagination */}
+              {/* Pagination Controls - Full Featured */}
               {totalPages > 1 && (
-                <div className="mt-6 flex justify-center items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchMatchedPatterns(selectedYarn!, currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-600">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchMatchedPatterns(selectedYarn!, currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
+                <div className="mt-8 flex justify-center">
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Page Navigation */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadPrevPage}
+                        disabled={currentPage === 1}
+                      >
+                        ← Previous
+                      </Button>
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 7) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 4) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 3) {
+                            pageNum = totalPages - 6 + i;
+                          } else {
+                            pageNum = currentPage - 3 + i;
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => loadPage(pageNum)}
+                              className="w-10 h-10"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      {/* Page input for direct navigation */}
+                      <form onSubmit={e => { e.preventDefault(); if (pageInput && !isNaN(Number(pageInput))) { loadPage(Number(pageInput)); setPageInput(''); } }} className="flex items-center gap-2">
+                        <input
+                          ref={pageInputRef}
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          value={pageInput}
+                          onChange={e => setPageInput(e.target.value)}
+                          className="w-16 px-2 py-1 border rounded text-sm"
+                          placeholder="Page #"
+                        />
+                        <Button type="submit" size="sm" variant="outline">Go</Button>
+                      </form>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadNextPage}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next →
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Last
+                      </Button>
+                    </div>
+                    {/* Results info */}
+                    <div className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages} • {totalPatterns} total patterns
+                    </div>
+                  </div>
                 </div>
               )}
             </>
