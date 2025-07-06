@@ -1212,6 +1212,14 @@ async def upload_pdf(pattern_id: int, file: UploadFile = File(...)):
         pattern.pdf_file = unique_filename
         db.commit()
         
+        # Backup to cloud storage
+        try:
+            from cloud_storage import CloudStorage
+            storage = CloudStorage()
+            storage.backup_pdf(pattern_id, unique_filename, file_path)
+        except Exception as cloud_error:
+            print(f"Warning: Failed to backup PDF to cloud storage: {cloud_error}")
+        
         db.close()
         return {"message": "PDF uploaded successfully", "filename": unique_filename}
     
@@ -1234,9 +1242,21 @@ async def download_pdf(pattern_id: int):
         raise HTTPException(status_code=404, detail="PDF not found for this pattern")
     
     file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    
+    # If file doesn't exist locally, try to restore from cloud storage
     if not os.path.exists(file_path):
-        db.close()
-        raise HTTPException(status_code=404, detail="PDF file not found")
+        try:
+            from cloud_storage import CloudStorage
+            storage = CloudStorage()
+            if storage.restore_pdf(pattern.pdf_file, file_path):
+                print(f"✅ Restored PDF from cloud storage: {pattern.pdf_file}")
+            else:
+                db.close()
+                raise HTTPException(status_code=404, detail="PDF file not found")
+        except Exception as restore_error:
+            print(f"Error restoring PDF: {restore_error}")
+            db.close()
+            raise HTTPException(status_code=404, detail="PDF file not found")
     
     db.close()
     return FileResponse(
@@ -1257,13 +1277,27 @@ async def view_pdf(pattern_id: int):
         raise HTTPException(status_code=404, detail="PDF not found for this pattern")
     
     file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    
+    # If file doesn't exist locally, try to restore from cloud storage
     if not os.path.exists(file_path):
-        db.close()
-        # Return a more informative error message
-        raise HTTPException(
-            status_code=404, 
-            detail="PDF file not found on server. This may be due to server restart. Please re-upload the PDF file."
-        )
+        try:
+            from cloud_storage import CloudStorage
+            storage = CloudStorage()
+            if storage.restore_pdf(pattern.pdf_file, file_path):
+                print(f"✅ Restored PDF from cloud storage: {pattern.pdf_file}")
+            else:
+                db.close()
+                raise HTTPException(
+                    status_code=404, 
+                    detail="PDF file not found. Please re-upload the PDF file."
+                )
+        except Exception as restore_error:
+            print(f"Error restoring PDF: {restore_error}")
+            db.close()
+            raise HTTPException(
+                status_code=404, 
+                detail="PDF file not found. Please re-upload the PDF file."
+            )
     
     db.close()
     return FileResponse(
@@ -1739,6 +1773,28 @@ def debug_pdf_uploads():
         }
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/restore-pdfs")
+def restore_all_pdfs():
+    """Restore all PDFs from cloud storage"""
+    try:
+        from cloud_storage import CloudStorage
+        storage = CloudStorage()
+        restored_count = storage.restore_all_pdfs()
+        return {"message": f"Restored {restored_count} PDFs from cloud storage"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to restore PDFs: {str(e)}")
+
+@app.post("/backup-pdfs")
+def backup_all_pdfs():
+    """Backup all PDFs to cloud storage"""
+    try:
+        from cloud_storage import CloudStorage
+        storage = CloudStorage()
+        backed_up_count = storage.backup_all_pdfs()
+        return {"message": f"Backed up {backed_up_count} PDFs to cloud storage"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to backup PDFs: {str(e)}")
 
 @app.get("/debug/project-types")
 def debug_project_types():

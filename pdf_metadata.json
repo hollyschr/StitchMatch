@@ -1,0 +1,77 @@
+{
+  "pdfs": {
+    "pattern_7440690_26cead61739f182e.pdf": {
+      "pattern_id": 7440690,
+      "original_path": "pdf_uploads/pattern_7440690_26cead61739f182e.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7440690_26cead61739f182e.pdf",
+      "file_size": 4302302,
+      "backed_up": "2025-07-05T23:54:06.972866",
+      "status": "active"
+    },
+    "pattern_7442901_5145c18be3181c01.pdf": {
+      "pattern_id": 7442901,
+      "original_path": "pdf_uploads/pattern_7442901_5145c18be3181c01.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442901_5145c18be3181c01.pdf",
+      "file_size": 22579769,
+      "backed_up": "2025-07-05T23:54:06.982334",
+      "status": "active"
+    },
+    "pattern_7442900_b71aebe327e9b03a.pdf": {
+      "pattern_id": 7442900,
+      "original_path": "pdf_uploads/pattern_7442900_b71aebe327e9b03a.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442900_b71aebe327e9b03a.pdf",
+      "file_size": 2180338,
+      "backed_up": "2025-07-05T23:54:06.990716",
+      "status": "active"
+    },
+    "pattern_7442697_3798609ab9ab1274.pdf": {
+      "pattern_id": 7442697,
+      "original_path": "pdf_uploads/pattern_7442697_3798609ab9ab1274.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442697_3798609ab9ab1274.pdf",
+      "file_size": 21322086,
+      "backed_up": "2025-07-05T23:54:07.003841",
+      "status": "active"
+    },
+    "pattern_7442898_292db7c23055b007.pdf": {
+      "pattern_id": 7442898,
+      "original_path": "pdf_uploads/pattern_7442898_292db7c23055b007.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442898_292db7c23055b007.pdf",
+      "file_size": 2180338,
+      "backed_up": "2025-07-05T23:54:07.012021",
+      "status": "active"
+    },
+    "pattern_7440688_9bcc61fa21b0325b.pdf": {
+      "pattern_id": 7440688,
+      "original_path": "pdf_uploads/pattern_7440688_9bcc61fa21b0325b.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7440688_9bcc61fa21b0325b.pdf",
+      "file_size": 4302302,
+      "backed_up": "2025-07-05T23:54:07.021159",
+      "status": "active"
+    },
+    "pattern_7442902_47528baf5a4eecb1.pdf": {
+      "pattern_id": 7442902,
+      "original_path": "pdf_uploads/pattern_7442902_47528baf5a4eecb1.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442902_47528baf5a4eecb1.pdf",
+      "file_size": 22579769,
+      "backed_up": "2025-07-05T23:54:07.032642",
+      "status": "active"
+    },
+    "pattern_7442901_854d9e67aabb981a.pdf": {
+      "pattern_id": 7442901,
+      "original_path": "pdf_uploads/pattern_7442901_854d9e67aabb981a.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442901_854d9e67aabb981a.pdf",
+      "file_size": 22579769,
+      "backed_up": "2025-07-05T23:54:07.062507",
+      "status": "active"
+    },
+    "pattern_7442902_91fe5cb28998fe4d.pdf": {
+      "pattern_id": 7442902,
+      "original_path": "pdf_uploads/pattern_7442902_91fe5cb28998fe4d.pdf",
+      "cloud_path": "cloud_pdfs/pattern_7442902_91fe5cb28998fe4d.pdf",
+      "file_size": 22579769,
+      "backed_up": "2025-07-05T23:54:07.079252",
+      "status": "active"
+    }
+  },
+  "last_updated": "2025-07-05T23:54:07.079269"
+}
