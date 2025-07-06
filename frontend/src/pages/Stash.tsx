@@ -51,6 +51,9 @@ const Stash = () => {
   const [isPatternsDialogOpen, setIsPatternsDialogOpen] = useState(false);
   const [isLoadingPatterns, setIsLoadingPatterns] = useState(false);
   const [showUploadedOnly, setShowUploadedOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPatterns, setTotalPatterns] = useState(0);
   const [newToolType, setNewToolType] = useState<string>('');
   const [newToolSize, setNewToolSize] = useState<string>('');
 
@@ -323,101 +326,32 @@ const Stash = () => {
     return tools.filter(tool => tool.type === type);
   };
 
-  const fetchMatchedPatterns = async (yarn: YarnStash) => {
+  const fetchMatchedPatterns = async (yarn: YarnStash, page: number = 1) => {
     setIsLoadingPatterns(true);
     setSelectedYarn(yarn);
     setIsPatternsDialogOpen(true);
+    setCurrentPage(page);
     
     try {
-      // Map stash weight to pattern weight values
-      const weightMapping: { [key: string]: string[] } = {
-        'lace': ['Lace'],
-        'cobweb': ['Cobweb'],
-        'thread': ['Thread'],
-        'light-fingering': ['Light Fingering'],
-        'fingering': ['Fingering (14 wpi)', 'Fingering'],
-        'sport': ['Sport (12 wpi)', 'Sport'],
-        'dk': ['DK (11 wpi)', 'DK'],
-        'worsted': ['Worsted (9 wpi)', 'Worsted'],
-        'aran': ['Aran (8 wpi)', 'Aran'],
-        'bulky': ['Bulky (7 wpi)', 'Bulky'],
-        'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
-        'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
-        // Add full weight strings as keys for direct lookup
-        'Lace': ['Lace'],
-        'Cobweb': ['Cobweb'],
-        'Thread': ['Thread'],
-        'Light Fingering': ['Light Fingering'],
-        'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
-        'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
-        'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
-        'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
-        'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
-        'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
-        'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
-        'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
-      };
+      // Use the optimized stash matching endpoint
+      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=${page}&page_size=20`);
       
-      const patternWeights = weightMapping[yarn.weight] || [yarn.weight];
-      
-      // Try to find patterns for each compatible weight (both imported and user-uploaded)
-      let allPatterns: any[] = [];
-      
-      for (const weight of patternWeights) {
-        // Get imported patterns
-        const importedResponse = await fetch(`${API_CONFIG.endpoints.patterns}?weight=${encodeURIComponent(weight)}&page=1&page_size=10`);
-        if (importedResponse.ok) {
-          const importedData = await importedResponse.json();
-          allPatterns = [...allPatterns, ...(importedData.patterns || [])];
-        }
-        
-        // Get user-uploaded patterns for current user
-        if (currentUser) {
-          const userResponse = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`);
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            // Filter user patterns by weight
-            const matchingUserPatterns = userData.filter((pattern: any) => {
-              if (!pattern.required_weight) return false;
-              
-              // Try multiple matching strategies
-              const patternWeightLower = pattern.required_weight.toLowerCase();
-              
-              // 1. Direct match with pattern weights
-              const directMatch = patternWeights.some(w => 
-                w.toLowerCase() === patternWeightLower
-              );
-              if (directMatch) return true;
-              
-              // 2. Partial matching for cases like "fingering" vs "Fingering (14 wpi)"
-              const partialMatch = patternWeights.some(w => 
-                patternWeightLower.includes(w.toLowerCase()) || w.toLowerCase().includes(patternWeightLower)
-              );
-              if (partialMatch) return true;
-              
-              // 3. Reverse mapping - check if pattern weight maps to stash weight
-              const reverseWeights = weightMapping[pattern.required_weight] || [];
-              const reverseMatch = reverseWeights.some(w => 
-                w.toLowerCase() === yarn.weight.toLowerCase()
-              );
-              if (reverseMatch) return true;
-              
-              return false;
-            });
-            allPatterns = [...allPatterns, ...matchingUserPatterns];
-          }
-        }
+      if (response.ok) {
+        const data = await response.json();
+        setMatchedPatterns(data.patterns || []);
+        setTotalPages(data.pagination?.pages || 1);
+        setTotalPatterns(data.pagination?.total || 0);
+      } else {
+        console.error('Error fetching stash matches:', response.status);
+        setMatchedPatterns([]);
+        setTotalPages(1);
+        setTotalPatterns(0);
       }
-      
-      // Remove duplicates and limit to 20 patterns
-      const uniquePatterns = allPatterns.filter((pattern, index, self) => 
-        index === self.findIndex(p => p.pattern_id === pattern.pattern_id)
-      ).slice(0, 20);
-      
-      setMatchedPatterns(uniquePatterns);
     } catch (error) {
       console.error('Error fetching matched patterns:', error);
       setMatchedPatterns([]);
+      setTotalPages(1);
+      setTotalPatterns(0);
     } finally {
       setIsLoadingPatterns(false);
     }
@@ -890,61 +824,91 @@ const Stash = () => {
               <div className="text-lg">Loading matched patterns...</div>
             </div>
           ) : filteredPatterns.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredPatterns.map((pattern) => (
-                <Card 
-                  key={pattern.pattern_id} 
-                  className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => {
-                    if (pattern.pattern_url) {
-                      // Imported pattern - open Ravelry link
-                      window.open(`${API_CONFIG.baseUrl}/view-pattern/${pattern.pattern_id}`, '_blank');
-                    } else if (pattern.pdf_file) {
-                      // User-uploaded pattern with PDF - open PDF
-                      window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
-                    }
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <img 
-                      src={pattern.image || "/placeholder.svg"}
-                      alt={pattern.name}
-                      className="w-16 h-16 object-cover rounded bg-gray-200"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{pattern.name}</h3>
-                      <p className="text-xs text-gray-600">by {pattern.designer}</p>
-                      <div className="mt-2 space-y-1 text-xs text-gray-500">
-                        {pattern.project_type && (
-                          <p><span className="font-medium">Type:</span> {pattern.project_type}</p>
+            <>
+              <div className="mb-4 text-sm text-gray-600">
+                Showing {filteredPatterns.length} of {totalPatterns} patterns
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredPatterns.map((pattern) => (
+                  <Card 
+                    key={pattern.pattern_id} 
+                    className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => {
+                      if (pattern.pattern_url) {
+                        // Imported pattern - open Ravelry link
+                        window.open(`${API_CONFIG.baseUrl}/view-pattern/${pattern.pattern_id}`, '_blank');
+                      } else if (pattern.pdf_file) {
+                        // User-uploaded pattern with PDF - open PDF
+                        window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <img 
+                        src={pattern.image || "/placeholder.svg"}
+                        alt={pattern.name}
+                        className="w-16 h-16 object-cover rounded bg-gray-200"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-sm">{pattern.name}</h3>
+                        <p className="text-xs text-gray-600">by {pattern.designer}</p>
+                        <div className="mt-2 space-y-1 text-xs text-gray-500">
+                          {pattern.project_type && (
+                            <p><span className="font-medium">Type:</span> {pattern.project_type}</p>
+                          )}
+                          {pattern.craft_type && (
+                            <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
+                          )}
+                          {pattern.price && (
+                            <p><span className="font-medium">Price:</span> {pattern.price}</p>
+                          )}
+                        </div>
+                        {pattern.pattern_url && (
+                          <div className="mt-2 text-xs text-blue-600 font-medium">
+                            Click to view on Ravelry →
+                          </div>
                         )}
-                        {pattern.craft_type && (
-                          <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
+                        {!pattern.pattern_url && pattern.pdf_file && (
+                          <div className="mt-2 text-xs text-green-600 font-medium">
+                            Click to view PDF →
+                          </div>
                         )}
-                        {pattern.price && (
-                          <p><span className="font-medium">Price:</span> {pattern.price}</p>
+                        {!pattern.pattern_url && !pattern.pdf_file && (
+                          <div className="mt-2 text-xs text-gray-500 font-medium">
+                            No link available
+                          </div>
                         )}
                       </div>
-                      {pattern.pattern_url && (
-                        <div className="mt-2 text-xs text-blue-600 font-medium">
-                          Click to view on Ravelry →
-                        </div>
-                      )}
-                      {!pattern.pattern_url && pattern.pdf_file && (
-                        <div className="mt-2 text-xs text-green-600 font-medium">
-                          Click to view PDF →
-                        </div>
-                      )}
-                      {!pattern.pattern_url && !pattern.pdf_file && (
-                        <div className="mt-2 text-xs text-gray-500 font-medium">
-                          No link available
-                        </div>
-                      )}
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex justify-center items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchMatchedPatterns(selectedYarn!, currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchMatchedPatterns(selectedYarn!, currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-8">
               <div className="text-lg text-gray-600">
