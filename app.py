@@ -955,6 +955,20 @@ def get_all_patterns(
                 raise HTTPException(status_code=400, detail="user_id is required when uploaded_only is true")
             # Only show patterns uploaded by this user
             query = query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+        if free_only:
+            # Filter for patterns that have free prices in HasLink_Link
+            query = query.filter(
+                db.query(HasLink_Link.pattern_id).filter(
+                    (HasLink_Link.pattern_id == Pattern.pattern_id) &
+                    ((HasLink_Link.price.ilike('free')) |
+                     (HasLink_Link.price == '0') |
+                     (HasLink_Link.price == '0.0') |
+                     (HasLink_Link.price.ilike('$0.00')) |
+                     (HasLink_Link.price.ilike('0.0 gbp')) |
+                     (HasLink_Link.price.ilike('0.0 dkk')) |
+                     (HasLink_Link.price.ilike('0.0 usd')))
+                ).exists()
+            )
         # Get total count for pagination
         total_count = query.count()
         # Apply pagination - ensure page_size is not zero
@@ -1023,12 +1037,7 @@ def get_all_patterns(
                 pattern_url=pattern_url,
                 price=price_display
             ))
-        # Filter for free patterns if requested (always before shuffle)
-        if free_only:
-            def is_free(p):
-                price = str(p.price).strip().lower() if p.price is not None else ''
-                return price in ['free', '0', '0.0', '$0.00', '0.0 gbp', '0.0 dkk', '0.0 usd']
-            result = [p for p in result if is_free(p)]
+        # Remove Python-side free_only filtering
         # Shuffle results if requested (after filtering)
         if shuffle:
             random.shuffle(result)
