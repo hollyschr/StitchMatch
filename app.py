@@ -1386,6 +1386,7 @@ def get_stash_matching_patterns(
     designer: Optional[str] = None,
     free_only: Optional[bool] = None
 ):
+    print(f"[DEBUG] stash-match params: user_id={user_id}, page={page}, page_size={page_size}, uploaded_only={uploaded_only}, project_type={project_type}, craft_type={craft_type}, weight={weight}, designer={designer}, free_only={free_only}")
     # Validate pagination parameters
     if page < 1:
         page = 1
@@ -1494,6 +1495,7 @@ def get_stash_matching_patterns(
     
     # Get the pattern IDs
     matching_pattern_ids = [row[0] for row in pattern_ids_query.all()]
+    print(f"[DEBUG] stash-match found {len(matching_pattern_ids)} matching pattern IDs")
     
     if not matching_pattern_ids:
         db.close()
