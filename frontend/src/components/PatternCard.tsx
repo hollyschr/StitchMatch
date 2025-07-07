@@ -519,7 +519,7 @@ const PatternCard = ({
                         };
                       }
                     }}
-                    className="w-full bg-black hover:bg-gray-800"
+                    className="w-full bg-black hover:bg-gray-800 !bg-opacity-100"
                   >
                     Open PDF
                   </Button>
@@ -663,7 +663,7 @@ const PatternCard = ({
                             };
                           }
                         }}
-                        className="h-6 px-2 text-xs bg-black hover:bg-gray-800"
+                        className="h-6 px-2 text-xs bg-black hover:bg-gray-800 !bg-opacity-100"
                       >
                         Open PDF
                       </Button>

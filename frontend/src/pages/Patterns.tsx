@@ -397,7 +397,7 @@ const Patterns = () => {
             <div className="flex gap-8">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-purple-600 hover:bg-purple-700">
+                  <Button className="bg-purple-600 hover:bg-purple-700 !bg-opacity-100">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Pattern
                   </Button>
@@ -666,7 +666,7 @@ const Patterns = () => {
             <Book className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No patterns yet</h3>
             <p className="text-gray-600 mb-4">Start building your pattern collection by adding your first pattern.</p>
-            <Button onClick={() => setIsDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+            <Button onClick={() => setIsDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700 !bg-opacity-100">
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Pattern
             </Button>

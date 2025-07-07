@@ -107,7 +107,7 @@ const Index = () => {
           </p>
           {!currentUser && (
             <div className="mt-8 flex justify-center space-x-4">
-              <Button onClick={() => navigate('/login')} size="lg" className="bg-green-600 hover:bg-green-700">
+              <Button onClick={() => navigate('/login')} size="lg" className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                 <LogIn className="h-5 w-5 mr-2" />
                 Get Started
               </Button>
@@ -172,7 +172,7 @@ const Index = () => {
           <div className="flex justify-center space-x-4">
             {currentUser ? (
               <>
-                <Button onClick={() => navigate('/stash')} size="lg" className="bg-green-600 hover:bg-green-700">
+                <Button onClick={() => navigate('/stash')} size="lg" className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                   Add My Stash
                 </Button>
                 <Button onClick={() => navigate('/search')} variant="outline" size="lg">
@@ -181,7 +181,7 @@ const Index = () => {
               </>
             ) : (
               <>
-                <Button onClick={() => navigate('/login')} size="lg" className="bg-green-600 hover:bg-green-700">
+                <Button onClick={() => navigate('/login')} size="lg" className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                   <UserPlus className="h-5 w-5 mr-2" />
                   Sign Up Free
                 </Button>

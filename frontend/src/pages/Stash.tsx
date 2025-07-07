@@ -450,7 +450,7 @@ const Stash = () => {
             </h2>
             <Dialog open={isYarnDialogOpen} onOpenChange={setIsYarnDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700">
+                <Button className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Yarn
                 </Button>
@@ -686,7 +686,7 @@ const Stash = () => {
             </h2>
             <Dialog open={isToolDialogOpen} onOpenChange={setIsToolDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-amber-600 hover:bg-amber-700">
+                <Button className="bg-amber-600 hover:bg-amber-700 !bg-opacity-100">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Tool
                 </Button>
