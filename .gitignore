@@ -119,3 +119,9 @@ backup_pdfs.py
 # New additions
 StitchMatch.sqbpro
 .Rhistory
+
+# Ignore all PDF files and backup folders
+pdf_backup/
+pdf_uploads/
+*.pdf
+cloud_pdfs/
