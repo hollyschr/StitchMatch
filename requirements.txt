@@ -3,4 +3,4 @@ uvicorn
 sqlalchemy
 pydantic
 psycopg2-binary
-python-multipart 
+python-multipart requests
