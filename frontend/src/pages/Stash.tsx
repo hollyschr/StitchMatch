@@ -415,6 +415,12 @@ const Stash = () => {
       )
     : matchedPatterns;
 
+  // Pagination: always show 20 patterns per page
+  const patternsPerPage = 20;
+  const paginatedPatterns = filteredPatterns.slice((currentPage - 1) * patternsPerPage, currentPage * patternsPerPage);
+  const totalFilteredPatterns = filteredPatterns.length;
+  const totalFilteredPages = Math.ceil(totalFilteredPatterns / patternsPerPage);
+
   console.log('Stash component rendering, currentUser:', currentUser);
   console.log('Yarn stash:', yarnStash);
   console.log('Tools:', tools);
@@ -877,10 +883,10 @@ const Stash = () => {
           ) : filteredPatterns.length > 0 ? (
             <>
               <div className="mb-4 text-sm text-gray-600">
-                Showing {filteredPatterns.length} pattern{filteredPatterns.length !== 1 ? 's' : ''} for this yarn
+                Showing {totalFilteredPatterns} pattern{totalFilteredPatterns !== 1 ? 's' : ''} for this yarn
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredPatterns.map((pattern) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[800px]">
+                {paginatedPatterns.map((pattern) => (
                   <Card 
                     key={pattern.pattern_id} 
                     className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
@@ -936,7 +942,7 @@ const Stash = () => {
               </div>
               
               {/* Pagination Controls - Full Featured */}
-              {totalPages > 1 && (
+              {totalFilteredPages > 1 && (
                 <div className="mt-8 flex justify-center">
                   <div className="flex flex-col items-center gap-4">
                     {/* Page Navigation */}
@@ -944,7 +950,7 @@ const Stash = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => loadPage(1)}
+                        onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
                       >
                         First
@@ -952,21 +958,21 @@ const Stash = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={loadPrevPage}
+                        onClick={() => setCurrentPage(currentPage - 1)}
                         disabled={currentPage === 1}
                       >
                         ← Previous
                       </Button>
                       {/* Page numbers */}
                       <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                        {Array.from({ length: Math.min(7, totalFilteredPages) }, (_, i) => {
                           let pageNum;
-                          if (totalPages <= 7) {
+                          if (totalFilteredPages <= 7) {
                             pageNum = i + 1;
                           } else if (currentPage <= 4) {
                             pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 3) {
-                            pageNum = totalPages - 6 + i;
+                          } else if (currentPage >= totalFilteredPages - 3) {
+                            pageNum = totalFilteredPages - 6 + i;
                           } else {
                             pageNum = currentPage - 3 + i;
                           }
@@ -975,7 +981,7 @@ const Stash = () => {
                               key={pageNum}
                               variant={currentPage === pageNum ? "default" : "outline"}
                               size="sm"
-                              onClick={() => loadPage(pageNum)}
+                              onClick={() => setCurrentPage(pageNum)}
                               className="w-10 h-10"
                             >
                               {pageNum}
@@ -984,12 +990,12 @@ const Stash = () => {
                         })}
                       </div>
                       {/* Page input for direct navigation */}
-                      <form onSubmit={e => { e.preventDefault(); if (pageInput && !isNaN(Number(pageInput))) { loadPage(Number(pageInput)); setPageInput(''); } }} className="flex items-center gap-2">
+                      <form onSubmit={e => { e.preventDefault(); if (pageInput && !isNaN(Number(pageInput))) { setCurrentPage(Number(pageInput)); setPageInput(''); } }} className="flex items-center gap-2">
                         <input
                           ref={pageInputRef}
                           type="number"
                           min={1}
-                          max={totalPages}
+                          max={totalFilteredPages}
                           value={pageInput}
                           onChange={e => setPageInput(e.target.value)}
                           className="w-16 px-2 py-1 border rounded text-sm"
@@ -1000,23 +1006,23 @@ const Stash = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={loadNextPage}
-                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        disabled={currentPage === totalFilteredPages}
                       >
                         Next →
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => loadPage(totalPages)}
-                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(totalFilteredPages)}
+                        disabled={currentPage === totalFilteredPages}
                       >
                         Last
                       </Button>
                     </div>
                     {/* Results info */}
                     <div className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages} • {totalPatterns} total patterns
+                      Page {currentPage} of {totalFilteredPages} • {totalFilteredPatterns} total patterns
                     </div>
                   </div>
                 </div>
