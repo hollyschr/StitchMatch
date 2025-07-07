@@ -2216,4 +2216,33 @@ def get_random_patterns():
         db.close()
         raise HTTPException(status_code=500, detail=f"Failed to get random patterns: {str(e)}")
 
+@app.delete("/users/{user_id}/yarn/{yarn_id}")
+def delete_user_yarn(user_id: int, yarn_id: str):
+    db = SessionLocal()
+    try:
+        # Check if user exists
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            db.close()
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Check if the user owns this yarn
+        owns_yarn = db.query(OwnsYarn).filter(
+            OwnsYarn.user_id == user_id,
+            OwnsYarn.yarn_id == yarn_id
+        ).first()
+        if not owns_yarn:
+            db.close()
+            raise HTTPException(status_code=404, detail="Yarn not found in user's stash")
+
+        # Delete the ownership relationship
+        db.delete(owns_yarn)
+        db.commit()
+        db.close()
+        return {"message": "Yarn removed from stash"}
+    except Exception as e:
+        db.rollback()
+        db.close()
+        raise HTTPException(status_code=500, detail=f"Error deleting yarn: {str(e)}")
+
 # To run: uvicorn app:app --reload
