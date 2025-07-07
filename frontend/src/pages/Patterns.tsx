@@ -559,23 +559,23 @@ const Patterns = () => {
             <div className="bg-white rounded-lg p-3 shadow-sm border">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-purple-600">{userPatterns.length}</div>
+                  <div className="text-2xl font-bold text-slate-700">{userPatterns.length}</div>
                   <div className="text-sm text-gray-600">Patterns</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-slate-700">
                     {userPatterns.filter(p => p.pdf_file).length}
                   </div>
                   <div className="text-sm text-gray-600">PDFs</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-slate-700">
                     {userPatterns.filter(p => p.craft_type === 'Knitting').length}
                   </div>
                   <div className="text-sm text-gray-600">Knitting</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold text-slate-700">
                     {userPatterns.filter(p => p.craft_type === 'Crochet').length}
                   </div>
                   <div className="text-sm text-gray-600">Crochet</div>
