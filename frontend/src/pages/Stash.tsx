@@ -419,23 +419,23 @@ const Stash = () => {
         <div className="bg-white rounded-lg p-3 shadow-sm border mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-slate-700">{yarnStash.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{yarnStash.length}</div>
               <div className="text-sm text-gray-600">Yarn</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-700">
+              <div className="text-2xl font-bold text-blue-600">
                 {yarnStash.reduce((total, yarn) => total + yarn.yardage, 0).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Total Yards</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-700">
+              <div className="text-2xl font-bold text-blue-600">
                 {yarnStash.reduce((total, yarn) => total + yarn.grams, 0).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Total Grams</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-700">{tools.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{tools.length}</div>
               <div className="text-sm text-gray-600">Tools</div>
             </div>
           </div>
@@ -681,7 +681,7 @@ const Stash = () => {
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
-              <Wrench className="h-6 w-6 mr-2 text-slate-700" />
+              <Wrench className="h-6 w-6 mr-2 text-blue-600" />
               Tools ({tools.length})
             </h2>
             <Dialog open={isToolDialogOpen} onOpenChange={setIsToolDialogOpen}>
@@ -732,7 +732,7 @@ const Stash = () => {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <Wrench className="h-8 w-8 mr-3 text-slate-700" />
+                  <Wrench className="h-8 w-8 mr-3 text-blue-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Knitting Needles</h3>
                     <p className="text-sm text-gray-600">{getToolsByType('knitting-needle').length} sizes</p>
@@ -782,7 +782,7 @@ const Stash = () => {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <Wrench className="h-8 w-8 mr-3 text-slate-700" />
+                  <Wrench className="h-8 w-8 mr-3 text-blue-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Crochet Hooks</h3>
                     <p className="text-sm text-gray-600">{getToolsByType('crochet-hook').length} sizes</p>
