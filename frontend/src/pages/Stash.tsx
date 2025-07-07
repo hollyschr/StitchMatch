@@ -137,7 +137,7 @@ const Stash = () => {
       yarn_name: formData.get('yarnName'),
       brand: formData.get('brand'),
       weight: formData.get('weight'),
-      fiber: formData.get('fiber'),
+      fiber: formData.get('fiber') ? formData.get('fiber') : '',
       yardage: parseFloat(formData.get('yardage') as string),
       grams: parseFloat(formData.get('grams') as string),
     };
@@ -504,7 +504,7 @@ const Stash = () => {
                   </div>
                   <div>
                     <Label htmlFor="fiber">Fiber Content</Label>
-                    <Input id="fiber" name="fiber" placeholder="e.g., 100% wool" required />
+                    <Input id="fiber" name="fiber" placeholder="e.g., 100% wool" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
