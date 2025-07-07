@@ -175,7 +175,7 @@ const Index = () => {
                 <Button onClick={() => navigate('/stash')} size="lg" className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                   Add My Stash
                 </Button>
-                <Button onClick={() => navigate('/search')} size="lg" className="bg-slate-700 hover:bg-slate-800 text-white">
+                <Button onClick={() => navigate('/search')} variant="outline" size="lg">
                   Search Patterns
                 </Button>
               </>
