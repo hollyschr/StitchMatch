@@ -1387,6 +1387,7 @@ def get_stash_matching_patterns(
     free_only: Optional[bool] = None
 ):
     print(f"[DEBUG] stash-match params: user_id={user_id}, page={page}, page_size={page_size}, uploaded_only={uploaded_only}, project_type={project_type}, craft_type={craft_type}, weight={weight}, designer={designer}, free_only={free_only}")
+    
     # Validate pagination parameters
     if page < 1:
         page = 1
@@ -1394,6 +1395,7 @@ def get_stash_matching_patterns(
         page_size = 30
     if page_size > 100:
         page_size = 100
+    
     db = SessionLocal()
     
     # Get user's yarn stash
@@ -1414,142 +1416,56 @@ def get_stash_matching_patterns(
             }
         )
     
-    # Calculate total yardage by weight class
+    # Calculate total yardage by weight class (same as frontend)
     stash_yardage_by_weight = {}
     for stash_item, yarn_type in stash_items:
-        weight = yarn_type.weight.lower()
-        if weight not in stash_yardage_by_weight:
-            stash_yardage_by_weight[weight] = 0
-        stash_yardage_by_weight[weight] += stash_item.yardage
+        weight_key = yarn_type.weight
+        if weight_key not in stash_yardage_by_weight:
+            stash_yardage_by_weight[weight_key] = 0
+        stash_yardage_by_weight[weight_key] += stash_item.yardage
     
-    # Get stash weights for filtering
-    stash_weights = list(stash_yardage_by_weight.keys())
-    print(f"[DEBUG] stash-match stash weights: {stash_weights}")
+    print(f"[DEBUG] stash-match stash yardage by weight: {stash_yardage_by_weight}")
     
-    # Filter by stash weights (including compatible weights)
-    compatible_weights = set()
-    for stash_weight in stash_weights:
-        compatible_weights.add(stash_weight)
-        # Add compatible weights
-        compatibles = get_compatible_weights(stash_weight)
-        compatible_weights.update(compatibles)
+    # Frontend weight mapping logic (exact copy from PatternCard.tsx)
+    def get_weight_mapping():
+        return {
+            'lace': ['Lace'],
+            'cobweb': ['Cobweb'],
+            'thread': ['Thread'],
+            'light-fingering': ['Light Fingering'],
+            'fingering': ['Fingering (14 wpi)', 'Fingering'],
+            'sport': ['Sport (12 wpi)', 'Sport'],
+            'dk': ['DK (11 wpi)', 'DK'],
+            'worsted': ['Worsted (9 wpi)', 'Worsted'],
+            'aran': ['Aran (8 wpi)', 'Aran'],
+            'bulky': ['Bulky (7 wpi)', 'Bulky'],
+            'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+            'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+            # Add full weight strings as keys for direct lookup
+            'Lace': ['Lace'],
+            'Cobweb': ['Cobweb'],
+            'Thread': ['Thread'],
+            'Light Fingering': ['Light Fingering'],
+            'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+            'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+            'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+            'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+            'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+            'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+            'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+            'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+        }
     
-    # Convert to lowercase for case-insensitive matching
-    compatible_weights_lower = [w.lower() for w in compatible_weights]
-    print(f"[DEBUG] stash-match compatible weights: {compatible_weights}")
-    print(f"[DEBUG] stash-match compatible weights (lowercase): {compatible_weights_lower}")
+    weight_mapping = get_weight_mapping()
     
-    # First, get the pattern IDs that match the weight criteria
-    # Get patterns with yarn suggestions matching stash weight
-    yarn_suggestions_query = db.query(
-        Pattern.pattern_id
-    ).join(
-        PatternSuggestsYarn, Pattern.pattern_id == PatternSuggestsYarn.pattern_id
-    ).join(
-        YarnType, PatternSuggestsYarn.yarn_id == YarnType.yarn_id
-    ).filter(
-        func.lower(YarnType.weight).in_(compatible_weights_lower)
-    )
-    
-    yarn_suggestion_ids = [row[0] for row in yarn_suggestions_query.all()]
-    print(f"[DEBUG] stash-match yarn suggestion pattern IDs: {len(yarn_suggestion_ids)}")
-    
-    # Get patterns with yarn suggestions matching stash weight
-    matching_pattern_ids = [row[0] for row in yarn_suggestions_query.all()]
-    print(f"[DEBUG] stash-match patterns with matching yarn weights: {len(matching_pattern_ids)}")
-    print(f"[DEBUG] stash-match total unique pattern IDs: {len(matching_pattern_ids)}")
-    
-    # Apply additional search constraints to pattern IDs
-    if matching_pattern_ids:
-        # Create a base query for applying filters
-        base_filter_query = db.query(Pattern).filter(Pattern.pattern_id.in_(matching_pattern_ids))
-        
-        # Track if any filters were applied
-        filters_applied = False
-        
-        if uploaded_only:
-            base_filter_query = base_filter_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
-            filters_applied = True
-        
-        if project_type and project_type != 'any':
-            db_project_type = map_frontend_project_type_to_db(project_type)
-            base_filter_query = base_filter_query.join(SuitableFor).join(ProjectType).filter(ProjectType.name == db_project_type)
-            filters_applied = True
-        
-        if craft_type and craft_type != 'any':
-            base_filter_query = base_filter_query.join(RequiresCraftType).join(CraftType).filter(CraftType.name == craft_type)
-            filters_applied = True
-        
-        if weight and weight != 'any':
-            # Map frontend weight to database weight format
-            weight_mapping = {
-                'lace': 'Lace',
-                'cobweb': 'Cobweb', 
-                'thread': 'Thread',
-                'light-fingering': 'Light Fingering',
-                'fingering': 'Fingering (14 wpi)',
-                'sport': 'Sport (12 wpi)',
-                'dk': 'DK (11 wpi)',
-                'worsted': 'Worsted (9 wpi)',
-                'aran': 'Aran (8 wpi)',
-                'bulky': 'Bulky (7 wpi)',
-                'super-bulky': 'Super Bulky (5-6 wpi)',
-                'jumbo': 'Jumbo (0-4 wpi)'
-            }
-            db_weight = weight_mapping.get(weight, weight)
-            # Filter by yarn weight through PatternSuggestsYarn relationship
-            base_filter_query = base_filter_query.join(PatternSuggestsYarn).join(YarnType).filter(YarnType.weight == db_weight)
-            filters_applied = True
-        
-        if designer and designer.strip():
-            base_filter_query = base_filter_query.filter(Pattern.designer.ilike(f'%{designer}%'))
-            filters_applied = True
-        
-        if free_only:
-            # Filter for patterns that have free prices in HasLink_Link
-            base_filter_query = base_filter_query.join(HasLink_Link).filter(
-                (HasLink_Link.price.ilike('free')) |
-                (HasLink_Link.price == '0') |
-                (HasLink_Link.price == '0.0') |
-                (HasLink_Link.price.ilike('$0.00')) |
-                (HasLink_Link.price.ilike('0.0 gbp')) |
-                (HasLink_Link.price.ilike('0.0 dkk')) |
-                (HasLink_Link.price.ilike('0.0 usd'))
-            )
-            filters_applied = True
-        
-        # Only apply the filter query if filters were actually applied
-        if filters_applied:
-            # Get the filtered patterns
-            filtered_patterns = base_filter_query.all()
-            print(f"[DEBUG] stash-match after filters: {len(filtered_patterns)} patterns")
-            matching_pattern_ids = [p.pattern_id for p in filtered_patterns]
-        else:
-            print(f"[DEBUG] stash-match no filters applied, keeping all {len(matching_pattern_ids)} patterns")
-    print(f"[DEBUG] stash-match found {len(matching_pattern_ids)} matching pattern IDs")
-    
-    if not matching_pattern_ids:
-        db.close()
-        return PaginatedPatternResponse(
-            patterns=[],
-            pagination={
-                "page": page,
-                "page_size": page_size,
-                "total": 0,
-                "pages": 0,
-                "has_next": False,
-                "has_prev": False
-            }
-        )
-    
-    # Now get the full pattern data for these IDs
-    base_query = db.query(
+    # Get all patterns with yarn suggestions
+    patterns_query = db.query(
         Pattern.pattern_id,
         Pattern.name,
         Pattern.designer,
         Pattern.image,
         Pattern.pdf_file,
-        YarnType.weight,
+        YarnType.weight.label('required_weight'),
         PatternSuggestsYarn.yardage_min,
         PatternSuggestsYarn.yardage_max,
         CraftType.name.label('craft_type_name'),
@@ -1570,75 +1486,160 @@ def get_stash_matching_patterns(
         ProjectType, SuitableFor.project_type_id == ProjectType.project_type_id
     ).outerjoin(
         HasLink_Link, Pattern.pattern_id == HasLink_Link.pattern_id
-    ).filter(
-        Pattern.pattern_id.in_(matching_pattern_ids)
     )
     
-    # Apply uploaded_only filter
+    # Apply filters before matching
     if uploaded_only:
-        base_query = base_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+        patterns_query = patterns_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
     
-    # Get total count for pagination (use the pattern IDs we already found)
-    total_matching = len(matching_pattern_ids)
+    if project_type and project_type != 'any':
+        db_project_type = map_frontend_project_type_to_db(project_type)
+        patterns_query = patterns_query.filter(ProjectType.name == db_project_type)
     
-    if total_matching == 0:
-        db.close()
-        return PaginatedPatternResponse(
-            patterns=[],
-            pagination={
-                "page": page,
-                "page_size": page_size,
-                "total": 0,
-                "pages": 0,
-                "has_next": False,
-                "has_prev": False
-            }
+    if craft_type and craft_type != 'any':
+        patterns_query = patterns_query.filter(CraftType.name == craft_type)
+    
+    if weight and weight != 'any':
+        # Map frontend weight to database weight format
+        weight_mapping_frontend = {
+            'lace': 'Lace',
+            'cobweb': 'Cobweb', 
+            'thread': 'Thread',
+            'light-fingering': 'Light Fingering',
+            'fingering': 'Fingering (14 wpi)',
+            'sport': 'Sport (12 wpi)',
+            'dk': 'DK (11 wpi)',
+            'worsted': 'Worsted (9 wpi)',
+            'aran': 'Aran (8 wpi)',
+            'bulky': 'Bulky (7 wpi)',
+            'super-bulky': 'Super Bulky (5-6 wpi)',
+            'jumbo': 'Jumbo (0-4 wpi)'
+        }
+        db_weight = weight_mapping_frontend.get(weight, weight)
+        patterns_query = patterns_query.filter(YarnType.weight == db_weight)
+    
+    if designer and designer.strip():
+        patterns_query = patterns_query.filter(Pattern.designer.ilike(f'%{designer}%'))
+    
+    if free_only:
+        patterns_query = patterns_query.filter(
+            (HasLink_Link.price.ilike('free')) |
+            (HasLink_Link.price == '0') |
+            (HasLink_Link.price == '0.0') |
+            (HasLink_Link.price.ilike('$0.00')) |
+            (HasLink_Link.price.ilike('0.0 gbp')) |
+            (HasLink_Link.price.ilike('0.0 dkk')) |
+            (HasLink_Link.price.ilike('0.0 usd'))
         )
     
-    # Apply pagination
-    offset = (page - 1) * page_size
-    base_query = base_query.offset(offset).limit(page_size)
+    # Get all patterns
+    all_patterns = patterns_query.all()
+    print(f"[DEBUG] stash-match total patterns before matching: {len(all_patterns)}")
     
-    # Execute the query
-    results = base_query.all()
-    
-    # Process results and include all patterns with matching weights (no yardage filtering)
+    # Apply frontend matching logic to each pattern
     matching_patterns = []
-    print(f"[DEBUG] stash-match processing {len(results)} results for permissive matching")
-    for result in results:
-        pattern_weight = result.weight.lower() if result.weight else None
-        matching_patterns.append(PatternResponse(
-            pattern_id=result.pattern_id,
-            name=result.name,
-            designer=result.designer,
-            image=result.image if result.image is not None else "/placeholder.svg",
-            pdf_file=result.pdf_file,
-            yardage_min=result.yardage_min,
-            yardage_max=result.yardage_max,
-            grams_min=None,
-            grams_max=None,
-            project_type=result.project_type_name,
-            craft_type=result.craft_type_name,
-            required_weight=pattern_weight,
-            pattern_url=result.url,
-            price=result.price
-        ))
-
-    # Deduplicate the final results by pattern_id
+    for result in all_patterns:
+        if not result.required_weight:
+            continue  # Skip patterns without weight info (same as frontend)
+        
+        # Frontend matching logic (exact copy from PatternCard.tsx matchesStash function)
+        matching_yarns = []
+        for stash_weight, stash_yardage in stash_yardage_by_weight.items():
+            # Normalize weights for comparison
+            yarn_weight_lower = stash_weight.lower()
+            pattern_weight_lower = result.required_weight.lower()
+            
+            # Check if this yarn's weight matches the pattern's required weight
+            # First, try direct mapping from stash weight to pattern weights
+            possible_pattern_weights = [w.lower() for w in (weight_mapping.get(stash_weight, []) + weight_mapping.get(stash_weight.lower(), []))]
+            if pattern_weight_lower in possible_pattern_weights:
+                matching_yarns.append((stash_weight, stash_yardage))
+                continue
+            
+            # Second, try reverse mapping - check if pattern weight maps to stash weight
+            possible_stash_weights = [w.lower() for w in (weight_mapping.get(result.required_weight, []) + weight_mapping.get(result.required_weight.lower(), []))]
+            if yarn_weight_lower in possible_stash_weights:
+                matching_yarns.append((stash_weight, stash_yardage))
+                continue
+            
+            # Third, try direct string matching (case-insensitive)
+            if yarn_weight_lower == pattern_weight_lower:
+                matching_yarns.append((stash_weight, stash_yardage))
+                continue
+            
+            # Fourth, try partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+            if yarn_weight_lower in pattern_weight_lower or pattern_weight_lower in yarn_weight_lower:
+                matching_yarns.append((stash_weight, stash_yardage))
+                continue
+        
+        if not matching_yarns:
+            continue  # No matching yarn weight
+        
+        # Calculate total yardage for matching yarns
+        total_yardage = sum(yardage for _, yardage in matching_yarns)
+        
+        if total_yardage == 0:
+            continue  # No yarn in this weight class
+        
+        # Handle different yardage scenarios (same as frontend)
+        has_min_yardage = result.yardage_min is not None
+        has_max_yardage = result.yardage_max is not None
+        
+        matches = False
+        if has_min_yardage and has_max_yardage:
+            # Both min and max yardage - stash must be at least as much as max
+            matches = total_yardage >= result.yardage_max
+        elif has_min_yardage:
+            # Only min yardage - stash must have at least this much
+            matches = total_yardage >= result.yardage_min
+        elif has_max_yardage:
+            # Only max yardage - stash must be at least as much as max
+            matches = total_yardage >= result.yardage_max
+        else:
+            # No yardage info - can't determine if stash matches (same as frontend)
+            continue
+        
+        if matches:
+            matching_patterns.append(PatternResponse(
+                pattern_id=result.pattern_id,
+                name=result.name,
+                designer=result.designer,
+                image=result.image if result.image is not None else "/placeholder.svg",
+                pdf_file=result.pdf_file,
+                yardage_min=result.yardage_min,
+                yardage_max=result.yardage_max,
+                grams_min=None,
+                grams_max=None,
+                project_type=result.project_type_name,
+                craft_type=result.craft_type_name,
+                required_weight=result.required_weight,
+                pattern_url=result.url,
+                price=result.price
+            ))
+    
+    print(f"[DEBUG] stash-match patterns matching stash: {len(matching_patterns)}")
+    
+    # Deduplicate by pattern_id
     seen_pattern_ids = set()
     unique_matching_patterns = []
     for pattern in matching_patterns:
         if pattern.pattern_id not in seen_pattern_ids:
             seen_pattern_ids.add(pattern.pattern_id)
             unique_matching_patterns.append(pattern)
-
+    
+    # Apply pagination
+    total_matching = len(unique_matching_patterns)
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paginated_patterns = unique_matching_patterns[start_idx:end_idx]
+    
     db.close()
-
+    
     # Calculate pagination info
     total_pages = (total_matching + page_size - 1) // page_size
-
+    
     return PaginatedPatternResponse(
-        patterns=unique_matching_patterns,
+        patterns=paginated_patterns,
         pagination={
             "page": page,
             "page_size": page_size,
