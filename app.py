@@ -1437,14 +1437,20 @@ def get_stash_matching_patterns(
     compatible_weights_lower = [w.lower() for w in compatible_weights]
     
     # First, get the pattern IDs that match the weight criteria
+    # Include patterns that either have yarn suggestions OR have the right required_weight
     pattern_ids_query = db.query(
         Pattern.pattern_id
-    ).join(
+    ).outerjoin(
         PatternSuggestsYarn, Pattern.pattern_id == PatternSuggestsYarn.pattern_id
-    ).join(
+    ).outerjoin(
         YarnType, PatternSuggestsYarn.yarn_id == YarnType.yarn_id
     ).filter(
-        func.lower(YarnType.weight).in_(compatible_weights_lower)
+        or_(
+            # Patterns with yarn suggestions matching stash weight
+            func.lower(YarnType.weight).in_(compatible_weights_lower),
+            # Patterns with required_weight matching stash weight
+            func.lower(Pattern.required_weight).in_(compatible_weights_lower)
+        )
     ).distinct()
     
     # Apply uploaded_only filter to pattern IDs
