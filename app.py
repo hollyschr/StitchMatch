@@ -1451,6 +1451,9 @@ def get_stash_matching_patterns(
         func.lower(YarnType.weight).in_(compatible_weights_lower)
     )
     
+    yarn_suggestion_ids = [row[0] for row in yarn_suggestions_query.all()]
+    print(f"[DEBUG] stash-match yarn suggestion pattern IDs: {len(yarn_suggestion_ids)}")
+    
     # Get patterns with required_weight matching stash weight
     required_weight_query = db.query(
         Pattern.pattern_id
@@ -1458,57 +1461,65 @@ def get_stash_matching_patterns(
         func.lower(Pattern.required_weight).in_(compatible_weights_lower)
     )
     
-    # Combine both queries using union
-    pattern_ids_query = yarn_suggestions_query.union(required_weight_query)
+    required_weight_ids = [row[0] for row in required_weight_query.all()]
+    print(f"[DEBUG] stash-match required_weight pattern IDs: {len(required_weight_ids)}")
     
-    # Apply uploaded_only filter to pattern IDs
-    if uploaded_only:
-        pattern_ids_query = pattern_ids_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+    # Combine both sets of pattern IDs
+    matching_pattern_ids = list(set(yarn_suggestion_ids + required_weight_ids))
+    print(f"[DEBUG] stash-match total unique pattern IDs: {len(matching_pattern_ids)}")
     
     # Apply additional search constraints to pattern IDs
-    if project_type and project_type != 'any':
-        db_project_type = map_frontend_project_type_to_db(project_type)
-        pattern_ids_query = pattern_ids_query.join(SuitableFor).join(ProjectType).filter(ProjectType.name == db_project_type)
-    
-    if craft_type and craft_type != 'any':
-        pattern_ids_query = pattern_ids_query.join(RequiresCraftType).join(CraftType).filter(CraftType.name == craft_type)
-    
-    if weight and weight != 'any':
-        # Map frontend weight to database weight format
-        weight_mapping = {
-            'lace': 'Lace',
-            'cobweb': 'Cobweb', 
-            'thread': 'Thread',
-            'light-fingering': 'Light Fingering',
-            'fingering': 'Fingering (14 wpi)',
-            'sport': 'Sport (12 wpi)',
-            'dk': 'DK (11 wpi)',
-            'worsted': 'Worsted (9 wpi)',
-            'aran': 'Aran (8 wpi)',
-            'bulky': 'Bulky (7 wpi)',
-            'super-bulky': 'Super Bulky (5-6 wpi)',
-            'jumbo': 'Jumbo (0-4 wpi)'
-        }
-        db_weight = weight_mapping.get(weight, weight)
-        pattern_ids_query = pattern_ids_query.filter(YarnType.weight == db_weight)
-    
-    if designer and designer.strip():
-        pattern_ids_query = pattern_ids_query.filter(Pattern.designer.ilike(f'%{designer}%'))
-    
-    if free_only:
-        # Filter for patterns that have free prices in HasLink_Link
-        pattern_ids_query = pattern_ids_query.join(HasLink_Link).filter(
-            (HasLink_Link.price.ilike('free')) |
-            (HasLink_Link.price == '0') |
-            (HasLink_Link.price == '0.0') |
-            (HasLink_Link.price.ilike('$0.00')) |
-            (HasLink_Link.price.ilike('0.0 gbp')) |
-            (HasLink_Link.price.ilike('0.0 dkk')) |
-            (HasLink_Link.price.ilike('0.0 usd'))
-        )
-    
-    # Get the pattern IDs
-    matching_pattern_ids = [row[0] for row in pattern_ids_query.all()]
+    if matching_pattern_ids:
+        # Create a base query for applying filters
+        base_filter_query = db.query(Pattern.pattern_id).filter(Pattern.pattern_id.in_(matching_pattern_ids))
+        
+        if uploaded_only:
+            base_filter_query = base_filter_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+        
+        if project_type and project_type != 'any':
+            db_project_type = map_frontend_project_type_to_db(project_type)
+            base_filter_query = base_filter_query.join(SuitableFor).join(ProjectType).filter(ProjectType.name == db_project_type)
+        
+        if craft_type and craft_type != 'any':
+            base_filter_query = base_filter_query.join(RequiresCraftType).join(CraftType).filter(CraftType.name == craft_type)
+        
+        if weight and weight != 'any':
+            # Map frontend weight to database weight format
+            weight_mapping = {
+                'lace': 'Lace',
+                'cobweb': 'Cobweb', 
+                'thread': 'Thread',
+                'light-fingering': 'Light Fingering',
+                'fingering': 'Fingering (14 wpi)',
+                'sport': 'Sport (12 wpi)',
+                'dk': 'DK (11 wpi)',
+                'worsted': 'Worsted (9 wpi)',
+                'aran': 'Aran (8 wpi)',
+                'bulky': 'Bulky (7 wpi)',
+                'super-bulky': 'Super Bulky (5-6 wpi)',
+                'jumbo': 'Jumbo (0-4 wpi)'
+            }
+            db_weight = weight_mapping.get(weight, weight)
+            base_filter_query = base_filter_query.filter(Pattern.required_weight == db_weight)
+        
+        if designer and designer.strip():
+            base_filter_query = base_filter_query.filter(Pattern.designer.ilike(f'%{designer}%'))
+        
+        if free_only:
+            # Filter for patterns that have free prices in HasLink_Link
+            base_filter_query = base_filter_query.join(HasLink_Link).filter(
+                (HasLink_Link.price.ilike('free')) |
+                (HasLink_Link.price == '0') |
+                (HasLink_Link.price == '0.0') |
+                (HasLink_Link.price.ilike('$0.00')) |
+                (HasLink_Link.price.ilike('0.0 gbp')) |
+                (HasLink_Link.price.ilike('0.0 dkk')) |
+                (HasLink_Link.price.ilike('0.0 usd'))
+            )
+        
+        # Get the filtered pattern IDs
+        matching_pattern_ids = [row[0] for row in base_filter_query.all()]
+        print(f"[DEBUG] stash-match after filters: {len(matching_pattern_ids)} pattern IDs")
     print(f"[DEBUG] stash-match found {len(matching_pattern_ids)} matching pattern IDs")
     
     if not matching_pattern_ids:
