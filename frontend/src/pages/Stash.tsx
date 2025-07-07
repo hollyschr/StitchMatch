@@ -346,67 +346,32 @@ const Stash = () => {
     return tools.filter(tool => tool.type === type);
   };
 
-  const fetchMatchedPatterns = async (yarn: YarnStash, page: number = 1) => {
+  const fetchMatchedPatterns = async (yarn: YarnStash) => {
     setIsLoadingPatterns(true);
     setSelectedYarn(yarn);
     setIsPatternsDialogOpen(true);
-    setCurrentPage(page);
-    
+    setCurrentPage(1);
     try {
-      // Use the optimized stash matching endpoint with uploaded_only parameter
+      // Use a large page_size to fetch all matches at once
       const uploadedOnlyParam = showUploadedOnly ? '&uploaded_only=true' : '';
-      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=${page}&page_size=20${uploadedOnlyParam}`);
-      
+      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=1&page_size=1000${uploadedOnlyParam}`);
       if (response.ok) {
         const data = await response.json();
         setMatchedPatterns(data.patterns || []);
-        setTotalPages(data.pagination?.pages || 1);
-        setTotalPatterns(data.pagination?.total || 0);
       } else {
         console.error('Error fetching stash matches:', response.status);
         setMatchedPatterns([]);
-        setTotalPages(1);
-        setTotalPatterns(0);
       }
     } catch (error) {
       console.error('Error fetching matched patterns:', error);
       setMatchedPatterns([]);
-      setTotalPages(1);
-      setTotalPatterns(0);
     } finally {
       setIsLoadingPatterns(false);
     }
   };
 
-  const loadNextPage = () => {
-    if (currentPage < totalPages && selectedYarn) {
-      fetchMatchedPatterns(selectedYarn, currentPage + 1);
-    }
-  };
-
-  const loadPrevPage = () => {
-    if (currentPage > 1 && selectedYarn) {
-      fetchMatchedPatterns(selectedYarn, currentPage - 1);
-    }
-  };
-
-  const loadPage = (pageNum: number) => {
-    if (selectedYarn && pageNum >= 1 && pageNum <= totalPages) {
-      fetchMatchedPatterns(selectedYarn, pageNum);
-    }
-  };
-
-  const knittingNeedles = getToolsByType('knitting-needle');
-  const crochetHooks = getToolsByType('crochet-hook');
-
-  // Refetch patterns when uploaded_only filter changes
-  useEffect(() => {
-    if (selectedYarn && isPatternsDialogOpen) {
-      fetchMatchedPatterns(selectedYarn, 1); // Reset to page 1 when filter changes
-    }
-  }, [showUploadedOnly]);
-
-  // Filter patterns based on selected yarn's weight
+  // Pagination: always show 20 patterns per page
+  const patternsPerPage = 20;
   const filteredPatterns = selectedYarn
     ? matchedPatterns.filter(
         (pattern) =>
@@ -414,9 +379,6 @@ const Stash = () => {
           pattern.required_weight.toLowerCase().includes(selectedYarn.weight.toLowerCase())
       )
     : matchedPatterns;
-
-  // Pagination: always show 20 patterns per page
-  const patternsPerPage = 20;
   const paginatedPatterns = filteredPatterns.slice((currentPage - 1) * patternsPerPage, currentPage * patternsPerPage);
   const totalFilteredPatterns = filteredPatterns.length;
   const totalFilteredPages = Math.ceil(totalFilteredPatterns / patternsPerPage);
@@ -756,7 +718,7 @@ const Stash = () => {
                   <Wrench className="h-8 w-8 mr-3 text-blue-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Knitting Needles</h3>
-                    <p className="text-sm text-gray-600">{knittingNeedles.length} sizes</p>
+                    <p className="text-sm text-gray-600">{getToolsByType('knitting-needle').length} sizes</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -770,9 +732,9 @@ const Stash = () => {
               
               {expandedTools['knitting-needle'] && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  {knittingNeedles.length > 0 ? (
+                  {getToolsByType('knitting-needle').length > 0 ? (
                     <div className="space-y-2">
-                      {knittingNeedles.map((tool) => (
+                      {getToolsByType('knitting-needle').map((tool) => (
                         <div key={tool.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                           <span className="text-sm font-medium">{tool.size}</span>
                           <Button
@@ -806,7 +768,7 @@ const Stash = () => {
                   <Wrench className="h-8 w-8 mr-3 text-purple-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Crochet Hooks</h3>
-                    <p className="text-sm text-gray-600">{crochetHooks.length} sizes</p>
+                    <p className="text-sm text-gray-600">{getToolsByType('crochet-hook').length} sizes</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -820,9 +782,9 @@ const Stash = () => {
               
               {expandedTools['crochet-hook'] && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  {crochetHooks.length > 0 ? (
+                  {getToolsByType('crochet-hook').length > 0 ? (
                     <div className="space-y-2">
-                      {crochetHooks.map((tool) => (
+                      {getToolsByType('crochet-hook').map((tool) => (
                         <div key={tool.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                           <span className="text-sm font-medium">{tool.size}</span>
                           <Button
