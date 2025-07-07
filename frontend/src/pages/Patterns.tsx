@@ -361,7 +361,7 @@ const Patterns = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Loading...</h2>
           <p className="text-gray-600">Please wait while we load your patterns.</p>
@@ -372,7 +372,7 @@ const Patterns = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Not logged in</h2>
           <p className="text-gray-600">Please log in to view your patterns.</p>
@@ -383,7 +383,7 @@ const Patterns = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50">
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

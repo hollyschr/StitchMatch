@@ -93,7 +93,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50">
       <Header />
       
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-8">
