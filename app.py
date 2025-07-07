@@ -1454,18 +1454,8 @@ def get_stash_matching_patterns(
     yarn_suggestion_ids = [row[0] for row in yarn_suggestions_query.all()]
     print(f"[DEBUG] stash-match yarn suggestion pattern IDs: {len(yarn_suggestion_ids)}")
     
-    # Get patterns with required_weight matching stash weight
-    required_weight_query = db.query(
-        Pattern.pattern_id
-    ).filter(
-        func.lower(Pattern.required_weight).in_(compatible_weights_lower)
-    )
-    
-    required_weight_ids = [row[0] for row in required_weight_query.all()]
-    print(f"[DEBUG] stash-match required_weight pattern IDs: {len(required_weight_ids)}")
-    
-    # Combine both sets of pattern IDs
-    matching_pattern_ids = list(set(yarn_suggestion_ids + required_weight_ids))
+    # Only use patterns with yarn suggestions (Pattern table doesn't have required_weight column)
+    matching_pattern_ids = yarn_suggestion_ids
     print(f"[DEBUG] stash-match total unique pattern IDs: {len(matching_pattern_ids)}")
     
     # Apply additional search constraints to pattern IDs
