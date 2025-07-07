@@ -1500,7 +1500,8 @@ def get_stash_matching_patterns(
                 'jumbo': 'Jumbo (0-4 wpi)'
             }
             db_weight = weight_mapping.get(weight, weight)
-            base_filter_query = base_filter_query.filter(Pattern.required_weight == db_weight)
+            # Filter by yarn weight through PatternSuggestsYarn relationship
+            base_filter_query = base_filter_query.join(PatternSuggestsYarn).join(YarnType).filter(YarnType.weight == db_weight)
         
         if designer and designer.strip():
             base_filter_query = base_filter_query.filter(Pattern.designer.ilike(f'%{designer}%'))
