@@ -1602,97 +1602,28 @@ def get_stash_matching_patterns(
     # Execute the query
     results = base_query.all()
     
-    # Process results and apply yardage filtering
+    # Process results and include all patterns with matching weights (no yardage filtering)
     matching_patterns = []
-    print(f"[DEBUG] stash-match processing {len(results)} results for yardage filtering")
+    print(f"[DEBUG] stash-match processing {len(results)} results for permissive matching")
     for result in results:
         pattern_weight = result.weight.lower() if result.weight else None
-        yardage_min = result.yardage_min
-        yardage_max = result.yardage_max
-        
-        print(f"[DEBUG] stash-match pattern {result.pattern_id}: weight={pattern_weight}, yardage_min={yardage_min}, yardage_max={yardage_max}")
-        
-        if not pattern_weight:
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: no weight, skipping")
-            continue
-            
-        # Calculate stash yardage for this pattern
-        stash_yardage = 0
-        
-        # Direct match
-        if pattern_weight in stash_yardage_by_weight:
-            stash_yardage = stash_yardage_by_weight[pattern_weight]
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: direct match, stash_yardage={stash_yardage}")
-        else:
-            # Check for compatible weights
-            compatible_weights = get_compatible_weights(pattern_weight)
-            for compatible_weight in compatible_weights:
-                if compatible_weight in stash_yardage_by_weight:
-                    stash_yardage += stash_yardage_by_weight[compatible_weight]
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: compatible weights, stash_yardage={stash_yardage}")
-        
-        if stash_yardage == 0:
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: no stash yardage, skipping")
-            continue
-            
-        # Check if stash yardage matches pattern requirements
-        matches = False
-        if yardage_min is not None and yardage_max is not None:
-            # Both min and max are present - stash must be at least as much as max
-            if stash_yardage >= yardage_max:
-                matches = True
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: both min/max, matches (stash={stash_yardage} >= max={yardage_max})")
-            else:
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: both min/max, no match (stash={stash_yardage} < max={yardage_max})")
-        elif yardage_max is not None:
-            # If only max is present, stash must be at least as much as max
-            if stash_yardage >= yardage_max:
-                matches = True
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: max only, matches (stash={stash_yardage} >= max={yardage_max})")
-            else:
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: max only, no match (stash={stash_yardage} < max={yardage_max})")
-        elif yardage_min is not None:
-            # If only min is present, stash must be at least as much as min
-            if stash_yardage >= yardage_min:
-                matches = True
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: min only, matches (stash={stash_yardage} >= min={yardage_min})")
-            else:
-                print(f"[DEBUG] stash-match pattern {result.pattern_id}: min only, no match (stash={stash_yardage} < min={yardage_min})")
-        else:
-            # No yardage info - include the pattern anyway (user can check if they have enough)
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: no yardage info, including anyway")
-            matches = True
-        
-        if matches:
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: adding to results")
-            # Format price for display
-            price_value = result.price
-            if price_value is not None:
-                if price_value.lower() == 'free' or price_value == '0' or price_value == '0.0':
-                    price_display = "Free"
-                else:
-                    # Keep the original price string as it may contain currency info
-                    price_display = price_value
-            else:
-                price_display = None
-            
-            matching_patterns.append(PatternResponse(
-                pattern_id=result.pattern_id,
-                name=result.name,
-                designer=result.designer,
-                image=result.image if result.image is not None else "/placeholder.svg",
-                pdf_file=result.pdf_file,
-                yardage_min=yardage_min,
-                yardage_max=yardage_max,
-                grams_min=None,  # Could add this if needed
-                grams_max=None,  # Could add this if needed
-                project_type=result.project_type_name,
-                craft_type=result.craft_type_name,
-                required_weight=pattern_weight,
-                pattern_url=result.url,
-                price=price_display
-            ))
-    
+        matching_patterns.append(PatternResponse(
+            pattern_id=result.pattern_id,
+            name=result.name,
+            designer=result.designer,
+            image=result.image if result.image is not None else "/placeholder.svg",
+            pdf_file=result.pdf_file,
+            yardage_min=result.yardage_min,
+            yardage_max=result.yardage_max,
+            grams_min=None,
+            grams_max=None,
+            project_type=result.project_type_name,
+            craft_type=result.craft_type_name,
+            required_weight=pattern_weight,
+            pattern_url=result.url,
+            price=result.price
+        ))
+
     # Deduplicate the final results by pattern_id
     seen_pattern_ids = set()
     unique_matching_patterns = []
@@ -1700,12 +1631,12 @@ def get_stash_matching_patterns(
         if pattern.pattern_id not in seen_pattern_ids:
             seen_pattern_ids.add(pattern.pattern_id)
             unique_matching_patterns.append(pattern)
-    
+
     db.close()
-    
+
     # Calculate pagination info
     total_pages = (total_matching + page_size - 1) // page_size
-    
+
     return PaginatedPatternResponse(
         patterns=unique_matching_patterns,
         pagination={
