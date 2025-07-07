@@ -237,6 +237,20 @@ const PatternCard = ({
                   <span>Match</span>
                 </div>
               )}
+              {showEditButton && onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(pattern);
+                  }}
+                  className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                  title="Edit Pattern"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
               {showFavoriteButton && onToggleFavorite && (
                 <Button
                   variant="ghost"
@@ -308,6 +322,20 @@ const PatternCard = ({
           
           {variant === 'patterns' && (
             <div className="flex gap-1 mt-2">
+              {showEditButton && onEdit && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(pattern);
+                  }}
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+              )}
               {pattern.pdf_file && (
                 <Button 
                   variant="ghost" 
