@@ -60,6 +60,8 @@ const Stash = () => {
   const [newToolSize, setNewToolSize] = useState<string>('');
   const [yarnToDelete, setYarnToDelete] = useState<YarnStash | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  // Ref for the patterns dialog content to scroll to top on page change
+  const patternsDialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('Stash component mounted');
@@ -390,6 +392,13 @@ const Stash = () => {
       setCurrentPage(1);
     }
   }, [showUploadedOnly]);
+
+  // Scroll to top of patterns dialog when page changes
+  useEffect(() => {
+    if (patternsDialogRef.current) {
+      patternsDialogRef.current.scrollTop = 0;
+    }
+  }, [currentPage]);
 
   console.log('Stash component rendering, currentUser:', currentUser);
   console.log('Yarn stash:', yarnStash);
@@ -829,7 +838,7 @@ const Stash = () => {
 
       {/* Matched Patterns Dialog */}
       <Dialog open={isPatternsDialogOpen} onOpenChange={setIsPatternsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" ref={patternsDialogRef}>
           <DialogHeader>
             <DialogTitle>
               Patterns for {selectedYarn?.yarnName} ({selectedYarn?.weight})
@@ -855,11 +864,12 @@ const Stash = () => {
               <div className="mb-4 text-sm text-gray-600">
                 Showing {totalFilteredPatterns} pattern{totalFilteredPatterns !== 1 ? 's' : ''} for this yarn
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[800px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {paginatedPatterns.map((pattern) => (
                   <Card 
                     key={pattern.pattern_id} 
-                    className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                    className="p-4 hover:shadow-lg transition-shadow cursor-pointer h-auto min-h-0 flex flex-col justify-start"
+                    style={{ minHeight: '180px', maxHeight: '320px' }}
                     onClick={() => {
                       if (pattern.pattern_url) {
                         // Open the actual Ravelry link directly
