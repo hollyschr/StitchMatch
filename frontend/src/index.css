@@ -6,13 +6,13 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* #FFFFFF - keep white for cards */
+    --background: 30 10% 98%; /* #FAFAF9 (pearl) - soft but not white for cards */
     --foreground: 0 0% 17%; /* #2C2C2C (dark gray) */
 
-    --card: 0 0% 100%; /* #FFFFFF - keep white for pattern cards */
+    --card: 30 10% 98%; /* #FAFAF9 (pearl) - soft but not white for pattern cards */
     --card-foreground: 0 0% 17%; /* #2C2C2C */
 
-    --popover: 0 0% 100%;
+    --popover: 30 10% 98%;
     --popover-foreground: 0 0% 17%;
 
     --primary: 210 20% 60%; /* #829AB1 (soft blue-gray) */

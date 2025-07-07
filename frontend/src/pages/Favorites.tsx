@@ -156,7 +156,7 @@ const Favorites = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#EAF4FB] to-[#F2F0FF]">
+    <div className="min-h-screen bg-gradient-to-br from-[#DCEEFE] via-[#E5ECFA] to-[#F2F0FF]">
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
