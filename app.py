@@ -1659,9 +1659,9 @@ def get_stash_matching_patterns(
             else:
                 print(f"[DEBUG] stash-match pattern {result.pattern_id}: min only, no match (stash={stash_yardage} < min={yardage_min})")
         else:
-            # No yardage info - can't determine match
-            print(f"[DEBUG] stash-match pattern {result.pattern_id}: no yardage info, skipping")
-            continue
+            # No yardage info - include the pattern anyway (user can check if they have enough)
+            print(f"[DEBUG] stash-match pattern {result.pattern_id}: no yardage info, including anyway")
+            matches = True
         
         if matches:
             print(f"[DEBUG] stash-match pattern {result.pattern_id}: adding to results")
