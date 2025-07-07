@@ -732,7 +732,7 @@ const Stash = () => {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <Wrench className="h-8 w-8 mr-3 text-blue-600" />
+                  <Wrench className="h-8 w-8 mr-3 text-green-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Knitting Needles</h3>
                     <p className="text-sm text-gray-600">{getToolsByType('knitting-needle').length} sizes</p>
@@ -782,7 +782,7 @@ const Stash = () => {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <Wrench className="h-8 w-8 mr-3 text-blue-600" />
+                  <Wrench className="h-8 w-8 mr-3 text-purple-600" />
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Crochet Hooks</h3>
                     <p className="text-sm text-gray-600">{getToolsByType('crochet-hook').length} sizes</p>
