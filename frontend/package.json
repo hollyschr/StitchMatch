@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm install && vite build",
     "build:dev": "vite build --mode development",
-    "vercel-build": "vite build",
+    "vercel-build": "npm install && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
