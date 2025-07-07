@@ -237,20 +237,6 @@ const PatternCard = ({
                   <span>Match</span>
                 </div>
               )}
-              {showEditButton && onEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(pattern);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                  title="Edit Pattern"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
               {showFavoriteButton && onToggleFavorite && (
                 <Button
                   variant="ghost"
@@ -321,26 +307,26 @@ const PatternCard = ({
           )}
           
           {variant === 'patterns' && (
-            <div className="flex gap-1 mt-2">
+            <div className="flex flex-wrap gap-1 mt-2">
               {showEditButton && onEdit && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="flex-1 text-xs"
+                  className="text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit(pattern);
                   }}
+                  title="Edit Pattern"
                 >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit
+                  <Edit className="h-3 w-3" />
                 </Button>
               )}
               {pattern.pdf_file && (
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="flex-1 text-xs"
+                  className="text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
@@ -351,7 +337,7 @@ const PatternCard = ({
                 </Button>
               )}
               {!pattern.pdf_file && showUploadButton && (
-                <div className="relative flex-1">
+                <div className="relative">
                   <input
                     type="file"
                     accept=".pdf"
@@ -359,14 +345,14 @@ const PatternCard = ({
                     onChange={handleFileUpload}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <Button variant="ghost" size="sm" className="w-full text-xs">
+                  <Button variant="ghost" size="sm" className="text-xs">
                     <Upload className="h-3 w-3 mr-1" />
                     Upload
                   </Button>
                 </div>
               )}
               <Button 
-                className="flex-1 text-xs" 
+                className="text-xs" 
                 variant="outline"
                 size="sm"
                 onClick={(e) => {
