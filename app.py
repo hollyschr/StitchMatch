@@ -1471,7 +1471,7 @@ def get_stash_matching_patterns(
     # Apply additional search constraints to pattern IDs
     if matching_pattern_ids:
         # Create a base query for applying filters
-        base_filter_query = db.query(Pattern.pattern_id).filter(Pattern.pattern_id.in_(matching_pattern_ids))
+        base_filter_query = db.query(Pattern).filter(Pattern.pattern_id.in_(matching_pattern_ids))
         
         if uploaded_only:
             base_filter_query = base_filter_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
@@ -1517,9 +1517,10 @@ def get_stash_matching_patterns(
                 (HasLink_Link.price.ilike('0.0 usd'))
             )
         
-        # Get the filtered pattern IDs
-        matching_pattern_ids = [row[0] for row in base_filter_query.all()]
-        print(f"[DEBUG] stash-match after filters: {len(matching_pattern_ids)} pattern IDs")
+        # Get the filtered patterns
+        filtered_patterns = base_filter_query.all()
+        print(f"[DEBUG] stash-match after filters: {len(filtered_patterns)} patterns")
+        matching_pattern_ids = [p.pattern_id for p in filtered_patterns]
     print(f"[DEBUG] stash-match found {len(matching_pattern_ids)} matching pattern IDs")
     
     if not matching_pattern_ids:
