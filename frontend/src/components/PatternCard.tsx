@@ -307,12 +307,12 @@ const PatternCard = ({
           )}
           
           {variant === 'patterns' && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {showEditButton && onEdit && (
+            <div className="flex justify-between mt-2">
+              {showEditButton && onEdit ? (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="text-xs"
+                  className="text-xs flex-1 mx-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit(pattern);
@@ -321,12 +321,14 @@ const PatternCard = ({
                 >
                   <Edit className="h-3 w-3" />
                 </Button>
+              ) : (
+                <div className="flex-1 mx-1"></div>
               )}
-              {pattern.pdf_file && (
+              {pattern.pdf_file ? (
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="text-xs"
+                  className="text-xs flex-1 mx-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
@@ -335,9 +337,8 @@ const PatternCard = ({
                   <Download className="h-3 w-3 mr-1" />
                   PDF
                 </Button>
-              )}
-              {!pattern.pdf_file && showUploadButton && (
-                <div className="relative">
+              ) : showUploadButton ? (
+                <div className="relative flex-1 mx-1">
                   <input
                     type="file"
                     accept=".pdf"
@@ -345,14 +346,16 @@ const PatternCard = ({
                     onChange={handleFileUpload}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <Button variant="ghost" size="sm" className="text-xs">
+                  <Button variant="ghost" size="sm" className="text-xs w-full">
                     <Upload className="h-3 w-3 mr-1" />
                     Upload
                   </Button>
                 </div>
+              ) : (
+                <div className="flex-1 mx-1"></div>
               )}
               <Button 
-                className="text-xs" 
+                className="text-xs flex-1 mx-1" 
                 variant="outline"
                 size="sm"
                 onClick={(e) => {
