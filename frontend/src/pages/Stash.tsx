@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Trash2, Plus, Package, Wrench, Edit, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +58,8 @@ const Stash = () => {
   const pageInputRef = useRef<HTMLInputElement>(null);
   const [newToolType, setNewToolType] = useState<string>('');
   const [newToolSize, setNewToolSize] = useState<string>('');
+  const [yarnToDelete, setYarnToDelete] = useState<YarnStash | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     console.log('Stash component mounted');
@@ -532,7 +534,8 @@ const Stash = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeYarn(yarn.id);
+                        setYarnToDelete(yarn);
+                        setIsDeleteConfirmOpen(true);
                       }}
                       className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
                     >
@@ -1013,6 +1016,33 @@ const Stash = () => {
               </p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Yarn</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{yarnToDelete?.yarnName}"?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (yarnToDelete) removeYarn(yarnToDelete.id);
+                setIsDeleteConfirmOpen(false);
+                setYarnToDelete(null);
+              }}
+            >
+              Delete
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
