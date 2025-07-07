@@ -101,3 +101,21 @@ build/
 *.tmp
 *.temp
 .vercel
+
+# Migration and database utility scripts
+create_tables.py
+convert_and_import_data.py
+migrate_to_railway.py
+add_complete_data_to_railway.py
+add_missing_patterns_to_railway.py
+add_missing_reference_data.py
+drops_sweater_importer.py
+manage_pdfs.py
+remove_null_yarns.py
+upload_pdfs_to_railway.py
+deploy_drops_to_railway.py
+backup_pdfs.py
+
+# New additions
+StitchMatch.sqbpro
+.Rhistory
