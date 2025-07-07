@@ -383,6 +383,14 @@ const Stash = () => {
   const totalFilteredPatterns = filteredPatterns.length;
   const totalFilteredPages = Math.ceil(totalFilteredPatterns / patternsPerPage);
 
+  // Refetch patterns when uploaded_only filter changes
+  useEffect(() => {
+    if (selectedYarn && isPatternsDialogOpen) {
+      fetchMatchedPatterns(selectedYarn);
+      setCurrentPage(1);
+    }
+  }, [showUploadedOnly]);
+
   console.log('Stash component rendering, currentUser:', currentUser);
   console.log('Yarn stash:', yarnStash);
   console.log('Tools:', tools);
