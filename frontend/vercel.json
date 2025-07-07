@@ -5,7 +5,6 @@
       "destination": "/index.html"
     }
   ],
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite"
+  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "outputDirectory": "dist"
 } 
