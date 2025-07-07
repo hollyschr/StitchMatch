@@ -427,9 +427,30 @@ const Search = () => {
         const stashParams = new URLSearchParams();
         stashParams.append('page', page.toString());
         stashParams.append('page_size', '30');
+        
+        // Add search constraints from form data
+        if (formData) {
+          if (formData.get('projectType') && formData.get('projectType') !== 'any') {
+            stashParams.append('project_type', formData.get('projectType') as string);
+          }
+          if (formData.get('craftType') && formData.get('craftType') !== 'any') {
+            stashParams.append('craft_type', formData.get('craftType') as string);
+          }
+          if (formData.get('weight') && formData.get('weight') !== 'any') {
+            stashParams.append('weight', formData.get('weight') as string);
+          }
+          if (formData.get('designer') && formData.get('designer') !== '') {
+            stashParams.append('designer', formData.get('designer') as string);
+          }
+        }
+        
         if (showUploadedOnly) {
           stashParams.append('uploaded_only', 'true');
         }
+        if (showFreeOnly) {
+          stashParams.append('free_only', 'true');
+        }
+        
         // Add timestamp to force cache invalidation
         stashParams.append('_t', Date.now().toString());
         

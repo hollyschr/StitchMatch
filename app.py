@@ -1379,7 +1379,12 @@ def get_stash_matching_patterns(
     user_id: int,
     page: int = 1,
     page_size: int = 30,
-    uploaded_only: Optional[bool] = None
+    uploaded_only: Optional[bool] = None,
+    project_type: Optional[str] = None,
+    craft_type: Optional[str] = None,
+    weight: Optional[str] = None,
+    designer: Optional[str] = None,
+    free_only: Optional[bool] = None
 ):
     # Validate pagination parameters
     if page < 1:
@@ -1444,6 +1449,48 @@ def get_stash_matching_patterns(
     # Apply uploaded_only filter to pattern IDs
     if uploaded_only:
         pattern_ids_query = pattern_ids_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+    
+    # Apply additional search constraints to pattern IDs
+    if project_type and project_type != 'any':
+        db_project_type = map_frontend_project_type_to_db(project_type)
+        pattern_ids_query = pattern_ids_query.join(SuitableFor).join(ProjectType).filter(ProjectType.name == db_project_type)
+    
+    if craft_type and craft_type != 'any':
+        pattern_ids_query = pattern_ids_query.join(RequiresCraftType).join(CraftType).filter(CraftType.name == craft_type)
+    
+    if weight and weight != 'any':
+        # Map frontend weight to database weight format
+        weight_mapping = {
+            'lace': 'Lace',
+            'cobweb': 'Cobweb', 
+            'thread': 'Thread',
+            'light-fingering': 'Light Fingering',
+            'fingering': 'Fingering (14 wpi)',
+            'sport': 'Sport (12 wpi)',
+            'dk': 'DK (11 wpi)',
+            'worsted': 'Worsted (9 wpi)',
+            'aran': 'Aran (8 wpi)',
+            'bulky': 'Bulky (7 wpi)',
+            'super-bulky': 'Super Bulky (5-6 wpi)',
+            'jumbo': 'Jumbo (0-4 wpi)'
+        }
+        db_weight = weight_mapping.get(weight, weight)
+        pattern_ids_query = pattern_ids_query.filter(YarnType.weight == db_weight)
+    
+    if designer and designer.strip():
+        pattern_ids_query = pattern_ids_query.filter(Pattern.designer.ilike(f'%{designer}%'))
+    
+    if free_only:
+        # Filter for patterns that have free prices in HasLink_Link
+        pattern_ids_query = pattern_ids_query.join(HasLink_Link).filter(
+            (HasLink_Link.price.ilike('free')) |
+            (HasLink_Link.price == '0') |
+            (HasLink_Link.price == '0.0') |
+            (HasLink_Link.price.ilike('$0.00')) |
+            (HasLink_Link.price.ilike('0.0 gbp')) |
+            (HasLink_Link.price.ilike('0.0 dkk')) |
+            (HasLink_Link.price.ilike('0.0 usd'))
+        )
     
     # Get the pattern IDs
     matching_pattern_ids = [row[0] for row in pattern_ids_query.all()]
