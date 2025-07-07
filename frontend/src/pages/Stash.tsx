@@ -132,13 +132,14 @@ const Stash = () => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     
-    const newYarn: Omit<YarnStash, 'id'> = {
-      yarnName: formData.get('yarnName') as string,
-      brand: formData.get('brand') as string,
-      weight: formData.get('weight') as string,
-      fiber: formData.get('fiber') as string,
-      yardage: parseInt(formData.get('yardage') as string),
-      grams: parseInt(formData.get('grams') as string),
+    // Use snake_case keys as expected by the backend
+    const newYarn = {
+      yarn_name: formData.get('yarnName'),
+      brand: formData.get('brand'),
+      weight: formData.get('weight'),
+      fiber: formData.get('fiber'),
+      yardage: parseFloat(formData.get('yardage') as string),
+      grams: parseFloat(formData.get('grams') as string),
     };
 
     fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/`, {
@@ -146,15 +147,28 @@ const Stash = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newYarn),
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 400 && errorData.detail && errorData.detail.includes('already owns this yarn')) {
+            toast({ title: 'You already own this yarn', variant: 'destructive' });
+          } else if (response.status === 422) {
+            toast({ title: 'Invalid yarn data. Please check your input.', variant: 'destructive' });
+          } else {
+            toast({ title: 'Error adding yarn', variant: 'destructive' });
+          }
+          throw new Error(errorData.detail || 'Error adding yarn');
+        }
+        return response.json();
+      })
       .then((data) => {
         // Transform the response to match the frontend interface
         const transformedYarn = {
           id: data.yarn_id,
-          yarnName: newYarn.yarnName,
-          brand: newYarn.brand,
-          weight: newYarn.weight,
-          fiber: newYarn.fiber,
+          yarnName: String(newYarn.yarn_name),
+          brand: String(newYarn.brand),
+          weight: String(newYarn.weight),
+          fiber: String(newYarn.fiber),
           yardage: newYarn.yardage,
           grams: newYarn.grams
         };
@@ -162,12 +176,14 @@ const Stash = () => {
         setYarnStash(updatedYarnStash);
         localStorage.setItem('yarnStash', JSON.stringify(updatedYarnStash));
         setIsYarnDialogOpen(false);
-        event.currentTarget.reset();
+        if (event.currentTarget && typeof (event.currentTarget as HTMLFormElement).reset === 'function') {
+          (event.currentTarget as HTMLFormElement).reset();
+        }
         toast({ title: 'Yarn added successfully!' });
       })
       .catch((error) => {
         console.error('Error adding yarn:', error);
-        toast({ title: 'Error adding yarn', variant: 'destructive' });
+        // Toasts are handled above for known errors
       });
   };
 
