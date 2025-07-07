@@ -75,6 +75,17 @@ create_indexes()
 
 app = FastAPI()
 
+# --- Auto-restore PDFs from cloud storage on startup ---
+@app.on_event("startup")
+def restore_pdfs_on_startup():
+    try:
+        from cloud_storage import CloudStorage
+        storage = CloudStorage()
+        restored_count = storage.restore_all_pdfs()
+        print(f"[STARTUP] Restored {restored_count} PDFs from cloud storage.")
+    except Exception as e:
+        print(f"[STARTUP] Failed to restore PDFs from cloud storage: {e}")
+
 # Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
 # Custom middleware to add cache-busting headers
