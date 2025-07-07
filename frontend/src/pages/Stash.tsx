@@ -406,8 +406,14 @@ const Stash = () => {
     }
   }, [showUploadedOnly]);
 
-  // Filter patterns based on checkbox state (now handled by backend)
-  const filteredPatterns = matchedPatterns;
+  // Filter patterns based on selected yarn's weight
+  const filteredPatterns = selectedYarn
+    ? matchedPatterns.filter(
+        (pattern) =>
+          pattern.required_weight &&
+          pattern.required_weight.toLowerCase().includes(selectedYarn.weight.toLowerCase())
+      )
+    : matchedPatterns;
 
   console.log('Stash component rendering, currentUser:', currentUser);
   console.log('Yarn stash:', yarnStash);
