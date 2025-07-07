@@ -877,7 +877,7 @@ const Stash = () => {
           ) : filteredPatterns.length > 0 ? (
             <>
               <div className="mb-4 text-sm text-gray-600">
-                Showing {filteredPatterns.length} of {totalPatterns} patterns
+                Showing {filteredPatterns.length} pattern{filteredPatterns.length !== 1 ? 's' : ''} for this yarn
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredPatterns.map((pattern) => (
@@ -886,8 +886,8 @@ const Stash = () => {
                     className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => {
                       if (pattern.pattern_url) {
-                        // Imported pattern - open Ravelry link
-                        window.open(`${API_CONFIG.baseUrl}/view-pattern/${pattern.pattern_id}`, '_blank');
+                        // Open the actual Ravelry link directly
+                        window.open(pattern.pattern_url, '_blank');
                       } else if (pattern.pdf_file) {
                         // User-uploaded pattern with PDF - open PDF
                         window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
