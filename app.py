@@ -1464,15 +1464,21 @@ def get_stash_matching_patterns(
         # Create a base query for applying filters
         base_filter_query = db.query(Pattern).filter(Pattern.pattern_id.in_(matching_pattern_ids))
         
+        # Track if any filters were applied
+        filters_applied = False
+        
         if uploaded_only:
             base_filter_query = base_filter_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
+            filters_applied = True
         
         if project_type and project_type != 'any':
             db_project_type = map_frontend_project_type_to_db(project_type)
             base_filter_query = base_filter_query.join(SuitableFor).join(ProjectType).filter(ProjectType.name == db_project_type)
+            filters_applied = True
         
         if craft_type and craft_type != 'any':
             base_filter_query = base_filter_query.join(RequiresCraftType).join(CraftType).filter(CraftType.name == craft_type)
+            filters_applied = True
         
         if weight and weight != 'any':
             # Map frontend weight to database weight format
@@ -1493,9 +1499,11 @@ def get_stash_matching_patterns(
             db_weight = weight_mapping.get(weight, weight)
             # Filter by yarn weight through PatternSuggestsYarn relationship
             base_filter_query = base_filter_query.join(PatternSuggestsYarn).join(YarnType).filter(YarnType.weight == db_weight)
+            filters_applied = True
         
         if designer and designer.strip():
             base_filter_query = base_filter_query.filter(Pattern.designer.ilike(f'%{designer}%'))
+            filters_applied = True
         
         if free_only:
             # Filter for patterns that have free prices in HasLink_Link
@@ -1508,11 +1516,16 @@ def get_stash_matching_patterns(
                 (HasLink_Link.price.ilike('0.0 dkk')) |
                 (HasLink_Link.price.ilike('0.0 usd'))
             )
+            filters_applied = True
         
-        # Get the filtered patterns
-        filtered_patterns = base_filter_query.all()
-        print(f"[DEBUG] stash-match after filters: {len(filtered_patterns)} patterns")
-        matching_pattern_ids = [p.pattern_id for p in filtered_patterns]
+        # Only apply the filter query if filters were actually applied
+        if filters_applied:
+            # Get the filtered patterns
+            filtered_patterns = base_filter_query.all()
+            print(f"[DEBUG] stash-match after filters: {len(filtered_patterns)} patterns")
+            matching_pattern_ids = [p.pattern_id for p in filtered_patterns]
+        else:
+            print(f"[DEBUG] stash-match no filters applied, keeping all {len(matching_pattern_ids)} patterns")
     print(f"[DEBUG] stash-match found {len(matching_pattern_ids)} matching pattern IDs")
     
     if not matching_pattern_ids:
