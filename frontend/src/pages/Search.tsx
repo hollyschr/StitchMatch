@@ -851,7 +851,7 @@ const Search = () => {
                   />
                   <Label htmlFor="freeOnly">Free patterns only</Label>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-slate-700 hover:bg-slate-800 text-white" disabled={isLoading}>
                   <SearchIcon className="h-4 w-4 mr-2" />
                   {isLoading ? 'Searching...' : 'Search Patterns'}
                 </Button>
@@ -1096,7 +1096,7 @@ const Search = () => {
                     : "Try adjusting your search criteria or adding more yarn to your stash"
                   }
                 </p>
-                <Button onClick={handleRandomSearch}>
+                <Button onClick={handleRandomSearch} className="bg-slate-700 hover:bg-slate-800 text-white">
                   <Shuffle className="h-4 w-4 mr-2" />
                   Try Random Pattern
                 </Button>

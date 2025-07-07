@@ -111,7 +111,7 @@ const Index = () => {
                 <LogIn className="h-5 w-5 mr-2" />
                 Get Started
               </Button>
-              <Button onClick={() => navigate('/search')} variant="outline" size="lg">
+              <Button onClick={() => navigate('/search')} size="lg" className="bg-slate-700 hover:bg-slate-800 text-white">
                 <Search className="h-5 w-5 mr-2" />
                 Browse Patterns
               </Button>
@@ -175,7 +175,7 @@ const Index = () => {
                 <Button onClick={() => navigate('/stash')} size="lg" className="bg-green-600 hover:bg-green-700 !bg-opacity-100">
                   Add My Stash
                 </Button>
-                <Button onClick={() => navigate('/search')} variant="outline" size="lg">
+                <Button onClick={() => navigate('/search')} size="lg" className="bg-slate-700 hover:bg-slate-800 text-white">
                   Search Patterns
                 </Button>
               </>
@@ -185,7 +185,7 @@ const Index = () => {
                   <UserPlus className="h-5 w-5 mr-2" />
                   Sign Up Free
                 </Button>
-                <Button onClick={() => navigate('/search')} variant="outline" size="lg">
+                <Button onClick={() => navigate('/search')} size="lg" className="bg-slate-700 hover:bg-slate-800 text-white">
                   <Search className="h-5 w-5 mr-2" />
                   Browse Patterns
                 </Button>
