@@ -557,6 +557,31 @@ const PatternCard = ({
               )}
             </div>
           )}
+          {variant === 'search' && pattern.pdf_file && (
+            <div className="flex gap-2 mt-2">
+              <Button
+                className="flex-1 h-9 text-xs"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Download PDF
+              </Button>
+              <Button
+                className="flex-1 h-9 text-xs bg-slate-700 hover:bg-slate-800 text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Open PDF
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
