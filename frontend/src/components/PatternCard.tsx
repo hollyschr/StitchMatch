@@ -299,10 +299,10 @@ const PatternCard = ({
               variant="outline"
               onClick={(e) => {
                 e.stopPropagation();
-                setIsExpanded(!isExpanded);
+                setIsDetailDialogOpen(true);
               }}
             >
-              {isExpanded ? 'Hide Details' : 'View Details'}
+              View Details
             </Button>
           )}
           
