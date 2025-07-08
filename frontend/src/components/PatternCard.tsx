@@ -546,7 +546,7 @@ const PatternCard = ({
               
               {pattern.pattern_url && (
                 <Button 
-                  className="w-full" 
+                  className="w-full bg-slate-700 hover:bg-slate-800 text-white" 
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(pattern.pattern_url, '_blank');
