@@ -328,6 +328,13 @@ const PatternCard = ({
             cardSize === 'small' ? 'text-xs' : (variant === 'patterns' ? 'text-xs' : 'text-sm')
           }`}>by {pattern.designer}</p>
           
+          {/* Show stash yarn weights needed for patterns variant */}
+          {variant === 'patterns' && (pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+            <p className="text-xs text-green-700 font-medium mb-2">
+              {pattern.held_yarn_description || (pattern as any).heldYarnDescription}
+            </p>
+          )}
+          
           {/* Show type, price, and craft above View Pattern button for search variant */}
           {variant === 'search' && (
             <div className="space-y-1 text-xs text-gray-500 mb-3">
@@ -389,9 +396,9 @@ const PatternCard = ({
               )}
               {pattern.google_drive_file_id ? (
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm"
-                  className="text-xs flex-1 mx-1"
+                  className="text-xs flex-1 mx-1 bg-white border-gray-300 hover:bg-gray-50"
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
