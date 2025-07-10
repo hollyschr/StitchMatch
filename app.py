@@ -108,7 +108,8 @@ app.add_middleware(
         "http://localhost:3001", 
         "http://localhost:3002",
         "http://localhost:3003",
-        "http://192.168.1.95:3003"
+        "http://192.168.1.95:3003",
+        "*"  # Allow all origins for debugging
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -123,7 +124,7 @@ app.add_middleware(CacheControlMiddleware)
 # SQLAlchemy Models
 class User(Base):
     __tablename__ = "User"
-    user_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String)
     email = Column(String, unique=True, index=True)
     password_hash = Column(String, nullable=True)
