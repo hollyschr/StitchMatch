@@ -351,7 +351,7 @@ const PatternCard = ({
                   }}
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  Open PDF
+                  PDF
                 </Button>
               ) : showUploadButton ? (
                 <div className="relative flex-1 mx-1">
