@@ -553,52 +553,64 @@ const Stash = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {yarnStash.map((yarn) => (
-              <Card 
-                key={yarn.id} 
-                className="p-3 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
-                onClick={() => fetchMatchedPatterns(yarn)}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-sm leading-tight">{yarn.yarnName}</h3>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditDialog(yarn);
-                      }}
-                      className="text-blue-500 hover:text-blue-700 h-6 w-6 p-0"
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setYarnToDelete(yarn);
-                        setIsDeleteConfirmOpen(true);
-                      }}
-                      className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+            {yarnStash.map((yarn) => {
+              // Compute counts for this yarn
+              const allMatches = matchedPatterns.filter(
+                (pattern) =>
+                  pattern.required_weight &&
+                  getMatchDescription(yarn.weight, pattern.required_weight)
+              );
+              const uploadedMatches = allMatches.filter((pattern) => pattern.google_drive_file_id);
+              return (
+                <Card 
+                  key={yarn.id} 
+                  className="p-3 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
+                  onClick={() => fetchMatchedPatterns(yarn)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-sm leading-tight">{yarn.yarnName}</h3>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditDialog(yarn);
+                        }}
+                        className="text-blue-500 hover:text-blue-700 h-6 w-6 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setYarnToDelete(yarn);
+                          setIsDeleteConfirmOpen(true);
+                        }}
+                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1 text-xs text-gray-600 flex-1">
-                  <p><span className="font-medium">Brand:</span> {yarn.brand}</p>
-                  <p><span className="font-medium">Weight:</span> {yarn.weight}</p>
-                  <p><span className="font-medium">Fiber:</span> {yarn.fiber}</p>
-                  <p><span className="font-medium">Yardage:</span> {yarn.yardage} yds</p>
-                  <p><span className="font-medium">Grams:</span> {yarn.grams} g</p>
-                </div>
-                <div className="mt-2 text-xs text-green-600 font-medium">
-                  Click to see matched patterns
-                </div>
-              </Card>
-            ))}
+                  <div className="space-y-1 text-xs text-gray-600 flex-1">
+                    <p><span className="font-medium">Brand:</span> {yarn.brand}</p>
+                    <p><span className="font-medium">Weight:</span> {yarn.weight}</p>
+                    <p><span className="font-medium">Fiber:</span> {yarn.fiber}</p>
+                    <p><span className="font-medium">Yardage:</span> {yarn.yardage} yds</p>
+                    <p><span className="font-medium">Grams:</span> {yarn.grams} g</p>
+                  </div>
+                  <div className="mt-2 text-xs text-green-700 font-medium">
+                    Matches: {allMatches.length} ({uploadedMatches.length} uploaded)
+                  </div>
+                  <div className="mt-2 text-xs text-green-600 font-medium">
+                    Click to see matched patterns
+                  </div>
+                </Card>
+              );
+            })}
           </div>
 
           {yarnStash.length === 0 && (
