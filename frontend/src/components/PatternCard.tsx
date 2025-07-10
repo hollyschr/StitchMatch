@@ -575,7 +575,7 @@ const PatternCard = ({
                           alert('PDF could not be loaded. Please try again.');
                         }
                       }}
-                      className="bg-black hover:bg-gray-800 !bg-opacity-100"
+                      className="bg-slate-700 hover:bg-slate-800 text-white"
                     >
                       Open PDF
                     </Button>
