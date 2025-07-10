@@ -599,9 +599,25 @@ const PatternCard = ({
               <Button
                 className="flex-1 h-9 text-xs"
                 variant="outline"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                  try {
+                    const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      if (data.redirect_url) {
+                        // For Google Drive files, open the redirect URL
+                        window.open(data.redirect_url, '_blank');
+                      } else {
+                        // For local files, open the direct URL
+                        window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                      }
+                    } else {
+                      console.error('Download failed:', response.status);
+                    }
+                  } catch (error) {
+                    console.error('Download error:', error);
+                  }
                 }}
               >
                 <Download className="h-4 w-4 mr-1" />
@@ -782,7 +798,25 @@ const PatternCard = ({
                 {showDownloadButton && pattern.google_drive_file_id && (
                   <Button 
                     variant="outline"
-                    onClick={() => window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank')}
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          if (data.redirect_url) {
+                            // For Google Drive files, open the redirect URL
+                            window.open(data.redirect_url, '_blank');
+                          } else {
+                            // For local files, open the direct URL
+                            window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                          }
+                        } else {
+                          console.error('Download failed:', response.status);
+                        }
+                      } catch (error) {
+                        console.error('Download error:', error);
+                      }
+                    }}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
