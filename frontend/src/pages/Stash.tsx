@@ -372,15 +372,49 @@ const Stash = () => {
     }
   };
 
-  // Pagination: always show 20 patterns per page
-  const patternsPerPage = 20;
+  // Helper: mapping for held yarn calculations (same as PatternCard)
+  const heldYarnCombinations = [
+    { from: ['Thread', 'Thread'], to: 'Lace' },
+    { from: ['Lace', 'Lace'], to: 'Fingering' },
+    { from: ['Sock', 'Sock'], to: 'Sport' },
+    { from: ['Fingering', 'Fingering'], to: 'DK' },
+    { from: ['Sport', 'Sport'], to: 'DK' },
+    { from: ['Sport', 'Sport'], to: 'Worsted' },
+    { from: ['DK', 'DK'], to: 'Worsted' },
+    { from: ['DK', 'DK'], to: 'Aran' },
+    { from: ['Worsted', 'Worsted'], to: 'Chunky' },
+    { from: ['Aran', 'Aran'], to: 'Chunky' },
+    { from: ['Aran', 'Aran'], to: 'Super Bulky' },
+    { from: ['Chunky', 'Chunky'], to: 'Super Bulky' },
+    { from: ['Chunky', 'Chunky'], to: 'Jumbo' },
+    { from: ['Fingering', 'Lace'], to: 'DK' },
+    { from: ['DK', 'Lace'], to: 'Worsted' },
+  ];
+  function canYarnSatisfyPattern(yarnWeight: string, patternWeight: string) {
+    const y = yarnWeight.trim().toLowerCase();
+    const p = patternWeight.trim().toLowerCase();
+    if (y === p) return true;
+    for (const combo of heldYarnCombinations) {
+      if (
+        combo.from.every(f => f.toLowerCase() === y) &&
+        combo.to.toLowerCase() === p
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
   const filteredPatterns = selectedYarn
     ? matchedPatterns.filter(
         (pattern) =>
           pattern.required_weight &&
-          pattern.required_weight.toLowerCase().includes(selectedYarn.weight.toLowerCase())
+          canYarnSatisfyPattern(selectedYarn.weight, pattern.required_weight) &&
+          (!showUploadedOnly || pattern.google_drive_file_id)
       )
     : matchedPatterns;
+
+  // Pagination: always show 20 patterns per page
+  const patternsPerPage = 20;
   const paginatedPatterns = filteredPatterns.slice((currentPage - 1) * patternsPerPage, currentPage * patternsPerPage);
   const totalFilteredPatterns = filteredPatterns.length;
   const totalFilteredPages = Math.ceil(totalFilteredPatterns / patternsPerPage);
