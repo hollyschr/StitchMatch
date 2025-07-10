@@ -39,6 +39,16 @@ interface UserPattern {
   required_weight?: string;
 }
 
+interface YarnStash {
+  id: string;
+  yarnName: string;
+  brand: string;
+  weight: string;
+  fiber: string;
+  yardage: number;
+  grams: number;
+}
+
 const Patterns = () => {
   const [userPatterns, setUserPatterns] = useState<UserPattern[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -51,6 +61,7 @@ const Patterns = () => {
   const [favoritedPatterns, setFavoritedPatterns] = useState<Set<number>>(new Set());
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [patternToEdit, setPatternToEdit] = useState<UserPattern | null>(null);
+  const [yarnStash, setYarnStash] = useState<YarnStash[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,11 +96,33 @@ const Patterns = () => {
         .then(data => {
           console.log('Fetched patterns:', data);
           setUserPatterns(data);
+          
+          // Load yarn stash for stash matching
+          return fetch(`${API_CONFIG.endpoints.users}/${user.user_id}/yarn`);
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error('Failed to fetch yarn stash');
+          }
+        })
+        .then(data => {
+          const transformedYarn = data.yarn ? data.yarn.map((yarn: any) => ({
+            id: yarn.yarn_id,
+            yarnName: yarn.yarn_name,
+            brand: yarn.brand,
+            weight: yarn.weight,
+            fiber: yarn.fiber,
+            yardage: yarn.yardage,
+            grams: yarn.grams
+          })) : [];
+          setYarnStash(transformedYarn);
           setIsLoading(false);
         })
         .catch(error => {
-          console.error('Error fetching patterns:', error);
-          toast({ title: "Error loading patterns" });
+          console.error('Error fetching data:', error);
+          toast({ title: "Error loading data" });
           setIsLoading(false);
         });
     } catch (error) {
@@ -641,6 +674,7 @@ const Patterns = () => {
                 <PatternCard
                   key={pattern.pattern_id}
                   pattern={pattern}
+                  yarnStash={yarnStash}
                   variant="patterns"
                   showDeleteButton={true}
                   onDelete={removePattern}
