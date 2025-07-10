@@ -35,6 +35,102 @@ interface Tool {
   size: string;
 }
 
+function matchesStash(pattern, yarnStash) {
+  if (!pattern.required_weight || yarnStash.length === 0) {
+    return false;
+  }
+  const weightMapping = {
+    'lace': ['Lace'],
+    'cobweb': ['Cobweb'],
+    'thread': ['Thread'],
+    'light-fingering': ['Light Fingering'],
+    'fingering': ['Fingering (14 wpi)', 'Fingering'],
+    'sport': ['Sport (12 wpi)', 'Sport'],
+    'dk': ['DK (11 wpi)', 'DK'],
+    'worsted': ['Worsted (9 wpi)', 'Worsted'],
+    'aran': ['Aran (8 wpi)', 'Aran'],
+    'bulky': ['Bulky (7 wpi)', 'Bulky'],
+    'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+    'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+    'Lace': ['Lace'],
+    'Cobweb': ['Cobweb'],
+    'Thread': ['Thread'],
+    'Light Fingering': ['Light Fingering'],
+    'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+    'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+    'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+    'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+    'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+    'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+    'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+    'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+  };
+  const heldYarnCalculations = {
+    'thread': [ { weight: 'Lace', description: '2 strands of thread = Lace weight' } ],
+    'lace': [
+      { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' },
+      { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' }
+    ],
+    'fingering': [ { weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' } ],
+    'sport': [
+      { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' },
+      { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' }
+    ],
+    'dk': [
+      { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' },
+      { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' }
+    ],
+    'worsted': [ { weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' } ],
+    'aran': [
+      { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' },
+      { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }
+    ],
+    'bulky': [
+      { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' },
+      { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }
+    ]
+  };
+  const normalizeWeight = (weight) => weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+  const checkWeightMatch = (stashWeight, patternWeight) => {
+    const stashNormalized = normalizeWeight(stashWeight);
+    const patternNormalized = normalizeWeight(patternWeight);
+    if (stashNormalized === patternNormalized) return { matches: true };
+    const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
+    if (possiblePatternWeights.includes(patternNormalized)) return { matches: true };
+    const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+    if (possibleStashWeights.includes(stashNormalized)) return { matches: true };
+    const heldCalculations = heldYarnCalculations[stashNormalized];
+    if (heldCalculations) {
+      for (const calc of heldCalculations) {
+        if (normalizeWeight(calc.weight) === patternNormalized) return { matches: true };
+      }
+    }
+    if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) return { matches: true };
+    return { matches: false };
+  };
+  let totalYardage = 0;
+  for (const yarn of yarnStash) {
+    const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
+    if (weightCheck.matches) {
+      totalYardage += yarn.yardage;
+    }
+  }
+  if (totalYardage === 0) return false;
+  const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
+  const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
+  let yardageMatches = false;
+  if (hasMinYardage && hasMaxYardage) {
+    yardageMatches = totalYardage >= pattern.yardage_max;
+  } else if (hasMinYardage) {
+    yardageMatches = totalYardage >= pattern.yardage_min;
+  } else if (hasMaxYardage) {
+    yardageMatches = totalYardage >= pattern.yardage_max;
+  } else {
+    return false;
+  }
+  return yardageMatches;
+}
+
 const Stash = () => {
   console.log('Stash component function called');
   const navigate = useNavigate();
@@ -418,12 +514,7 @@ const Stash = () => {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
   const filteredPatterns = selectedYarn
-    ? matchedPatterns.filter(
-        (pattern) =>
-          pattern.required_weight &&
-          (getMatchDescription(selectedYarn.weight, pattern.required_weight)) &&
-          (!showUploadedOnly || pattern.google_drive_file_id)
-      )
+    ? matchedPatterns.filter((pattern) => matchesStash(pattern, [selectedYarn]) && (!showUploadedOnly || pattern.google_drive_file_id))
     : matchedPatterns;
 
   // Pagination: always show 20 patterns per page
@@ -565,11 +656,7 @@ const Stash = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {yarnStash.map((yarn) => {
               // Use allStashMatches for counts, not matchedPatterns
-              const allMatches = allStashMatches.filter(
-                (pattern) =>
-                  pattern.required_weight &&
-                  getMatchDescription(yarn.weight, pattern.required_weight)
-              );
+              const allMatches = allStashMatches.filter((pattern) => matchesStash(pattern, [yarn]));
               const uploadedMatches = allMatches.filter((pattern) => pattern.google_drive_file_id);
               return (
                 <Card 
