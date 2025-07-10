@@ -99,7 +99,7 @@ const Stash = () => {
           weight: yarn.weight,
           fiber: yarn.fiber,
           yardage: yarn.yardage,
-          grams: yarn.grams
+          grams: yarn.grams,
         })) : [];
         console.log('Transformed yarn data:', transformedYarn);
         setYarnStash(transformedYarn);
