@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import PatternCard from '@/components/PatternCard';
 import { EditPatternDialog } from '@/components/EditPatternDialog';
+import GoogleDrivePicker from '@/components/GoogleDrivePicker';
 import API_CONFIG from '@/config/api';
 
 interface User {
@@ -43,7 +44,7 @@ const Patterns = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [selectedGoogleDriveFile, setSelectedGoogleDriveFile] = useState<{id: string, name: string} | null>(null);
   const [filterCraft, setFilterCraft] = useState<string>('all');
   const [filterPdf, setFilterPdf] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
@@ -155,7 +156,7 @@ const Patterns = () => {
       name: formData.get('name') as string,
       designer: formData.get('designer') as string,
       image: formData.get('image') as string || '/placeholder.svg',
-      google_drive_file_id: selectedPdfFile ? selectedPdfFile.name : undefined,
+      google_drive_file_id: selectedGoogleDriveFile ? selectedGoogleDriveFile.id : undefined,
       yardage_min: parseNumber(formData.get('yardageMin') as string),
       yardage_max: parseNumber(formData.get('yardageMax') as string),
       grams_min: parseNumber(formData.get('gramsMin') as string),
@@ -186,20 +187,8 @@ const Patterns = () => {
         console.log('Pattern added successfully:', result);
         const patternId = result.pattern_id;
         
-        // Upload PDF if selected
-        if (selectedPdfFile) {
-          const pdfFormData = new FormData();
-          pdfFormData.append('file', selectedPdfFile);
-          
-          const pdfResponse = await fetch(`${API_CONFIG.baseUrl}/upload-pdf/${patternId}`, {
-            method: "POST",
-            body: pdfFormData,
-          });
-          
-          if (!pdfResponse.ok) {
-            console.error('Failed to upload PDF');
-          }
-        }
+        // Google Drive file is already linked via the file ID
+        // No need to upload since we're storing the Google Drive file ID
         
         // Refresh the list
         const updatedPatterns = await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/patterns/`);
@@ -207,7 +196,7 @@ const Patterns = () => {
         setUserPatterns(patterns);
         
         // Reset form
-        setSelectedPdfFile(null);
+        setSelectedGoogleDriveFile(null);
         setIsDialogOpen(false);
         toast({ title: "Pattern added successfully!" });
       } else {
@@ -423,20 +412,26 @@ const Patterns = () => {
                       <Input id="image" name="image" type="url" placeholder="https://..." />
                     </div>
                     <div>
-                      <Label htmlFor="pdfFile">PDF Pattern File (optional)</Label>
-                      <Input 
-                        id="pdfFile" 
-                        name="pdfFile" 
-                        type="file" 
-                        accept=".pdf"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // Store the file for later upload
-                            setSelectedPdfFile(file);
-                          }
-                        }}
-                      />
+                      <Label>PDF Pattern File (optional)</Label>
+                      {selectedGoogleDriveFile ? (
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
+                          <span className="text-sm text-blue-700">{selectedGoogleDriveFile.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedGoogleDriveFile(null)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <GoogleDrivePicker
+                          onFileSelect={(file) => setSelectedGoogleDriveFile({id: file.id, name: file.name})}
+                          className="mt-2"
+                        />
+                      )}
                     </div>
                     
                     {/* Metadata Fields */}

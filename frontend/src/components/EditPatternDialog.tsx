@@ -8,6 +8,7 @@ import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { API_CONFIG } from '../config/api';
 import { Upload, X } from 'lucide-react';
+import GoogleDrivePicker from './GoogleDrivePicker';
 
 interface Pattern {
   pattern_id: number;
@@ -100,7 +101,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [selectedGoogleDriveFile, setSelectedGoogleDriveFile] = useState<{id: string, name: string} | null>(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [formData, setFormData] = useState({
     name: pattern.name,
@@ -139,17 +140,14 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
     }));
   };
 
-  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedPdfFile(file);
-      setRemovePdf(false);
-    }
+  const handleGoogleDriveFileSelect = (file: {id: string, name: string}) => {
+    setSelectedGoogleDriveFile(file);
+    setRemovePdf(false);
   };
 
   const handleRemovePdf = () => {
     setRemovePdf(true);
-    setSelectedPdfFile(null);
+    setSelectedGoogleDriveFile(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,7 +165,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           name: formData.name,
           designer: formData.designer,
           image: formData.image,
-          google_drive_file_id: removePdf ? null : (selectedPdfFile ? selectedPdfFile.name : pattern.google_drive_file_id),
+          google_drive_file_id: removePdf ? null : (selectedGoogleDriveFile ? selectedGoogleDriveFile.id : pattern.google_drive_file_id),
           description: formData.description || undefined,
           project_type: formData.project_type || undefined,
           craft_type: formData.craft_type || undefined,
@@ -180,25 +178,8 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
       });
 
       if (response.ok) {
-        // Upload new PDF if selected
-        if (selectedPdfFile) {
-          const pdfFormData = new FormData();
-          pdfFormData.append('file', selectedPdfFile);
-          
-          const pdfResponse = await fetch(`${API_CONFIG.baseUrl}/upload-pdf/${pattern.pattern_id}`, {
-            method: 'POST',
-            body: pdfFormData,
-          });
-          
-          if (!pdfResponse.ok) {
-            console.error('Failed to upload PDF');
-            toast({
-              title: "Warning",
-              description: "Pattern updated but PDF upload failed. You can try uploading the PDF again.",
-              variant: "destructive",
-            });
-          }
-        }
+        // Google Drive file is already linked via the file ID
+        // No need to upload since we're storing the Google Drive file ID
 
         // Remove PDF if requested
         if (removePdf && pattern.google_drive_file_id) {
@@ -275,7 +256,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           <div className="space-y-2">
             <Label>PDF Pattern File</Label>
             <div className="space-y-2">
-              {pattern.google_drive_file_id && !removePdf && !selectedPdfFile && (
+              {pattern.google_drive_file_id && !removePdf && !selectedGoogleDriveFile && (
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
                   <span className="text-sm text-gray-700">{pattern.google_drive_file_id}</span>
                   <Button
@@ -289,33 +270,25 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
                   </Button>
                 </div>
               )}
-              {selectedPdfFile && (
+              {selectedGoogleDriveFile && (
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
-                  <span className="text-sm text-blue-700">{selectedPdfFile.name}</span>
+                  <span className="text-sm text-blue-700">{selectedGoogleDriveFile.name}</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedPdfFile(null)}
+                    onClick={() => setSelectedGoogleDriveFile(null)}
                     className="text-red-600 hover:text-red-700"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               )}
-              {(!pattern.google_drive_file_id || removePdf) && !selectedPdfFile && (
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handlePdfUpload}
-                  />
-                  <Button variant="outline" className="w-full">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload PDF
-                  </Button>
-                </div>
+              {(!pattern.google_drive_file_id || removePdf) && !selectedGoogleDriveFile && (
+                <GoogleDrivePicker
+                  onFileSelect={handleGoogleDriveFileSelect}
+                  className="mt-2"
+                />
               )}
             </div>
           </div>
