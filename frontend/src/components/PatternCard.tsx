@@ -427,7 +427,7 @@ const PatternCard = ({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="text-xs flex-1 mx-1 bg-white border-gray-300 hover:bg-gray-50"
+                  className="text-xs flex-1 mx-1"
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
