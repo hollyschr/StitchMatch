@@ -527,58 +527,59 @@ const PatternCard = ({
                     Edit
                   </Button>
                 )}
-                {showDownloadButton && pattern.google_drive_file_id && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
-                        const data = await response.json();
-                        
-                        if (data.redirect_url) {
-                          // This is a Google Drive file - open download URL
-                          window.open(data.redirect_url, '_blank');
-                        } else {
-                          // This is a local file - open download URL
-                          window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
-                        }
-                      } catch (error) {
-                        console.error('Error downloading PDF:', error);
-                        alert('PDF could not be downloaded. Please try again.');
-                      }
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download PDF
-                  </Button>
-                )}
                 {pattern.google_drive_file_id && (
-                  <Button 
-                    variant="default" 
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const response = await fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`);
-                        const data = await response.json();
-                        
-                        if (data.redirect_url) {
-                          // This is a Google Drive file - open in new tab
-                          window.open(data.redirect_url, '_blank');
-                        } else {
-                          // This is a local file - open in new tab
-                          window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
+                          const data = await response.json();
+                          
+                          if (data.redirect_url) {
+                            // This is a Google Drive file - open download URL
+                            window.open(data.redirect_url, '_blank');
+                          } else {
+                            // This is a local file - open download URL
+                            window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                          }
+                        } catch (error) {
+                          console.error('Error downloading PDF:', error);
+                          alert('PDF could not be downloaded. Please try again.');
                         }
-                      } catch (error) {
-                        console.error('Error opening PDF:', error);
-                        alert('PDF could not be loaded. Please try again.');
-                      }
-                    }}
-                    className="w-full bg-black hover:bg-gray-800 !bg-opacity-100"
-                  >
-                    Open PDF
-                  </Button>
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download PDF
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const response = await fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`);
+                          const data = await response.json();
+                          
+                          if (data.redirect_url) {
+                            // This is a Google Drive file - open in new tab
+                            window.open(data.redirect_url, '_blank');
+                          } else {
+                            // This is a local file - open in new tab
+                            window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                          }
+                        } catch (error) {
+                          console.error('Error opening PDF:', error);
+                          alert('PDF could not be loaded. Please try again.');
+                        }
+                      }}
+                      className="bg-black hover:bg-gray-800 !bg-opacity-100"
+                    >
+                      Open PDF
+                    </Button>
+                  </>
                 )}
                 {showUploadButton && !pattern.google_drive_file_id && (
                   <div className="relative">
@@ -610,47 +611,7 @@ const PatternCard = ({
               )}
             </div>
           )}
-          {variant === 'search' && pattern.google_drive_file_id && (
-            <div className="flex gap-2 mt-2">
-              <Button
-                className="flex-1 h-9 text-xs"
-                variant="outline"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
-                    if (response.ok) {
-                      const data = await response.json();
-                      if (data.redirect_url) {
-                        // For Google Drive files, open the redirect URL
-                        window.open(data.redirect_url, '_blank');
-                      } else {
-                        // For local files, open the direct URL
-                        window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
-                      }
-                    } else {
-                      console.error('Download failed:', response.status);
-                    }
-                  } catch (error) {
-                    console.error('Download error:', error);
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Download PDF
-              </Button>
-              <Button
-                className="flex-1 h-9 text-xs bg-slate-700 hover:bg-slate-800 text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
-                }}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Open PDF
-              </Button>
-            </div>
-          )}
+
         </div>
       </Card>
 
