@@ -390,25 +390,28 @@ const Stash = () => {
     { from: ['Fingering', 'Lace'], to: 'DK' },
     { from: ['DK', 'Lace'], to: 'Worsted' },
   ];
-  function canYarnSatisfyPattern(yarnWeight: string, patternWeight: string) {
+  function getMatchDescription(yarnWeight: string, patternWeight: string) {
     const y = yarnWeight.trim().toLowerCase();
     const p = patternWeight.trim().toLowerCase();
-    if (y === p) return true;
+    if (y === p) return `${capitalize(yarnWeight)} (direct match)`;
     for (const combo of heldYarnCombinations) {
       if (
         combo.from.every(f => f.toLowerCase() === y) &&
         combo.to.toLowerCase() === p
       ) {
-        return true;
+        return `${combo.from.length} strands of ${yarnWeight.toLowerCase()} = ${combo.to} weight`;
       }
     }
-    return false;
+    return null;
+  }
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
   }
   const filteredPatterns = selectedYarn
     ? matchedPatterns.filter(
         (pattern) =>
           pattern.required_weight &&
-          canYarnSatisfyPattern(selectedYarn.weight, pattern.required_weight) &&
+          (getMatchDescription(selectedYarn.weight, pattern.required_weight)) &&
           (!showUploadedOnly || pattern.google_drive_file_id)
       )
     : matchedPatterns;
@@ -899,60 +902,65 @@ const Stash = () => {
                 Showing {totalFilteredPatterns} pattern{totalFilteredPatterns !== 1 ? 's' : ''} for this yarn
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {paginatedPatterns.map((pattern) => (
-                  <Card 
-                    key={pattern.pattern_id} 
-                    className="p-4 hover:shadow-lg transition-shadow cursor-pointer h-auto min-h-0 flex flex-col justify-start"
-                    style={{ minHeight: '180px', maxHeight: '320px' }}
-                    onClick={() => {
-                      if (pattern.pattern_url) {
-                        // Open the actual Ravelry link directly
-                        window.open(pattern.pattern_url, '_blank');
-                      } else if (pattern.google_drive_file_id) {
-                        // User-uploaded pattern with PDF - open PDF
-                        window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
-                      }
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <img 
-                        src={pattern.image || "/placeholder.svg"}
-                        alt={pattern.name}
-                        className="w-16 h-16 object-cover rounded bg-gray-200"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{pattern.name}</h3>
-                        <p className="text-xs text-gray-600">by {pattern.designer}</p>
-                        <div className="mt-2 space-y-1 text-xs text-gray-500">
-                          {pattern.project_type && (
-                            <p><span className="font-medium">Type:</span> {pattern.project_type}</p>
+                {paginatedPatterns.map((pattern) => {
+                  const matchDesc = selectedYarn ? getMatchDescription(selectedYarn.weight, pattern.required_weight) : null;
+                  return (
+                    <Card 
+                      key={pattern.pattern_id} 
+                      className="p-4 hover:shadow-lg transition-shadow cursor-pointer h-auto min-h-0 flex flex-col justify-start"
+                      style={{ minHeight: '180px', maxHeight: '320px' }}
+                      onClick={() => {
+                        if (pattern.pattern_url) {
+                          window.open(pattern.pattern_url, '_blank');
+                        } else if (pattern.google_drive_file_id) {
+                          // Open PDF in new tab (not download)
+                          window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <img 
+                          src={pattern.image || "/placeholder.svg"}
+                          alt={pattern.name}
+                          className="w-16 h-16 object-cover rounded bg-gray-200"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-sm">{pattern.name}</h3>
+                          <p className="text-xs text-gray-600">by {pattern.designer}</p>
+                          {matchDesc && (
+                            <p className="text-xs text-green-700 font-medium mt-1">Stash Match: {matchDesc}</p>
                           )}
-                          {pattern.craft_type && (
-                            <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
+                          <div className="mt-2 space-y-1 text-xs text-gray-500">
+                            {pattern.project_type && (
+                              <p><span className="font-medium">Type:</span> {pattern.project_type}</p>
+                            )}
+                            {pattern.craft_type && (
+                              <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
+                            )}
+                            {pattern.price && (
+                              <p><span className="font-medium">Price:</span> {pattern.price}</p>
+                            )}
+                          </div>
+                          {pattern.pattern_url && (
+                            <div className="mt-2 text-xs text-blue-600 font-medium">
+                              Click to view on Ravelry →
+                            </div>
                           )}
-                          {pattern.price && (
-                            <p><span className="font-medium">Price:</span> {pattern.price}</p>
+                          {!pattern.pattern_url && pattern.google_drive_file_id && (
+                            <div className="mt-2 text-xs text-green-600 font-medium">
+                              Click to view PDF →
+                            </div>
+                          )}
+                          {!pattern.pattern_url && !pattern.google_drive_file_id && (
+                            <div className="mt-2 text-xs text-gray-500 font-medium">
+                              No link available
+                            </div>
                           )}
                         </div>
-                        {pattern.pattern_url && (
-                          <div className="mt-2 text-xs text-blue-600 font-medium">
-                            Click to view on Ravelry →
-                          </div>
-                        )}
-                        {!pattern.pattern_url && pattern.google_drive_file_id && (
-                          <div className="mt-2 text-xs text-green-600 font-medium">
-                            Click to view PDF →
-                          </div>
-                        )}
-                        {!pattern.pattern_url && !pattern.google_drive_file_id && (
-                          <div className="mt-2 text-xs text-gray-500 font-medium">
-                            No link available
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
               
               {/* Pagination Controls - Full Featured */}
