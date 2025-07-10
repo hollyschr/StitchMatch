@@ -86,6 +86,30 @@ def restore_pdfs_on_startup():
     except Exception as e:
         print(f"[STARTUP] Failed to restore PDFs from cloud storage: {e}")
 
+# --- Fix User table sequence on startup ---
+@app.on_event("startup")
+def fix_user_sequence():
+    try:
+        if not DATABASE_URL.startswith("sqlite"):
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                # Get the current maximum user_id
+                result = conn.execute(text("SELECT MAX(user_id) FROM \"User\""))
+                max_id = result.scalar()
+                
+                if max_id is None:
+                    max_id = 0
+                
+                print(f"[STARTUP] Current maximum user_id: {max_id}")
+                
+                # Reset the sequence to start after the maximum ID
+                conn.execute(text(f"SELECT setval('\"User_user_id_seq\"', {max_id + 1}, false)"))
+                conn.commit()
+                
+                print(f"[STARTUP] User sequence reset to start from: {max_id + 1}")
+    except Exception as e:
+        print(f"[STARTUP] Failed to fix user sequence: {e}")
+
 # Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
 # Custom middleware to add cache-busting headers
