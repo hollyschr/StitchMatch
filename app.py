@@ -135,7 +135,7 @@ class Pattern(Base):
     name = Column(String)
     designer = Column(String)
     image = Column(String)
-    pdf_file = Column(String, nullable=True)  # Store PDF filename
+    google_drive_file_id = Column(String, nullable=True)  # Store Google Drive file ID
 
 class ProjectType(Base):
     __tablename__ = "ProjectType"
@@ -236,7 +236,7 @@ class PatternCreate(BaseModel):
     name: str
     designer: str
     image: str
-    pdf_file: Optional[str] = None  # PDF filename
+    google_drive_file_id: Optional[str] = None  # Google Drive file ID
     # Metadata fields (these will be stored in normalized tables)
     yardage_min: Optional[float] = None
     yardage_max: Optional[float] = None
@@ -263,7 +263,7 @@ class PatternResponse(BaseModel):
     name: str
     designer: str
     image: Optional[str] = None
-    pdf_file: Optional[str] = None  # PDF filename
+    google_drive_file_id: Optional[str] = None  # Google Drive file ID
     yardage_min: Optional[float] = None
     yardage_max: Optional[float] = None
     grams_min: Optional[float] = None
@@ -412,7 +412,7 @@ def get_user_patterns(user_id: int):
             name=pattern.name,
             designer=pattern.designer,
             image=pattern.image if pattern.image is not None else "/placeholder.svg",
-            pdf_file=pattern.pdf_file,
+            google_drive_file_id=pattern.google_drive_file_id,
             yardage_min=yardage_min,
             yardage_max=yardage_max,
             grams_min=grams_min,
@@ -603,8 +603,8 @@ def update_user_pattern(user_id: int, pattern_id: int, pattern: PatternCreate):
     existing_pattern.name = pattern.name
     existing_pattern.designer = pattern.designer
     existing_pattern.image = pattern.image
-    if pattern.pdf_file:
-        existing_pattern.pdf_file = pattern.pdf_file
+    if pattern.google_drive_file_id:
+        existing_pattern.google_drive_file_id = pattern.google_drive_file_id
     
     # Update craft type
     if pattern.craft_type:
@@ -1037,7 +1037,7 @@ def get_all_patterns(
                 name=pattern.name,
                 designer=pattern.designer,
                 image=pattern.image if pattern.image is not None else "/placeholder.svg",
-                pdf_file=pattern.pdf_file,
+                google_drive_file_id=pattern.google_drive_file_id,
                 yardage_min=yardage_min,
                 yardage_max=yardage_max,
                 grams_min=grams_min,
@@ -1228,8 +1228,8 @@ async def upload_pdf(pattern_id: int, file: UploadFile = File(...)):
             content = await file.read()
             buffer.write(content)
         
-        # Update pattern with PDF filename
-        pattern.pdf_file = unique_filename
+        # Update pattern with Google Drive file ID
+        pattern.google_drive_file_id = unique_filename
         db.commit()
         
         # Backup to cloud storage
@@ -1257,19 +1257,19 @@ async def download_pdf(pattern_id: int):
     
     # Check if pattern exists and has a PDF
     pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
-    if not pattern or not pattern.pdf_file:
+    if not pattern or not pattern.google_drive_file_id:
         db.close()
         raise HTTPException(status_code=404, detail="PDF not found for this pattern")
     
-    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.google_drive_file_id)
     
     # If file doesn't exist locally, try to restore from cloud storage
     if not os.path.exists(file_path):
         try:
             from cloud_storage import CloudStorage
             storage = CloudStorage()
-            if storage.restore_pdf(pattern.pdf_file, file_path):
-                print(f"✅ Restored PDF from cloud storage: {pattern.pdf_file}")
+            if storage.restore_pdf(pattern.google_drive_file_id, file_path):
+                print(f"✅ Restored PDF from cloud storage: {pattern.google_drive_file_id}")
             else:
                 db.close()
                 raise HTTPException(status_code=404, detail="PDF file not found")
@@ -1281,7 +1281,7 @@ async def download_pdf(pattern_id: int):
     db.close()
     return FileResponse(
         path=file_path,
-        filename=pattern.pdf_file,
+        filename=pattern.google_drive_file_id,
         media_type='application/pdf'
     )
 
@@ -1292,19 +1292,19 @@ async def view_pdf(pattern_id: int):
     
     # Check if pattern exists and has a PDF
     pattern = db.query(Pattern).filter(Pattern.pattern_id == pattern_id).first()
-    if not pattern or not pattern.pdf_file:
+    if not pattern or not pattern.google_drive_file_id:
         db.close()
         raise HTTPException(status_code=404, detail="PDF not found for this pattern")
     
-    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+    file_path = os.path.join(PDF_UPLOADS_DIR, pattern.google_drive_file_id)
     
     # If file doesn't exist locally, try to restore from cloud storage
     if not os.path.exists(file_path):
         try:
             from cloud_storage import CloudStorage
             storage = CloudStorage()
-            if storage.restore_pdf(pattern.pdf_file, file_path):
-                print(f"✅ Restored PDF from cloud storage: {pattern.pdf_file}")
+            if storage.restore_pdf(pattern.google_drive_file_id, file_path):
+                print(f"✅ Restored PDF from cloud storage: {pattern.google_drive_file_id}")
             else:
                 db.close()
                 raise HTTPException(
@@ -1475,7 +1475,7 @@ def get_stash_matching_patterns(
         Pattern.name,
         Pattern.designer,
         Pattern.image,
-        Pattern.pdf_file,
+        Pattern.google_drive_file_id,
         YarnType.weight.label('required_weight'),
         PatternSuggestsYarn.yardage_min,
         PatternSuggestsYarn.yardage_max,
@@ -1616,7 +1616,7 @@ def get_stash_matching_patterns(
                 name=result.name,
                 designer=result.designer,
                 image=result.image if result.image is not None else "/placeholder.svg",
-                pdf_file=result.pdf_file,
+                google_drive_file_id=result.google_drive_file_id,
                 yardage_min=result.yardage_min,
                 yardage_max=result.yardage_max,
                 grams_min=None,
@@ -1776,8 +1776,8 @@ def debug_user_patterns(user_id: int):
         
         # Check if PDF file exists on disk
         pdf_exists = False
-        if pattern.pdf_file:
-            file_path = os.path.join(PDF_UPLOADS_DIR, pattern.pdf_file)
+        if pattern.google_drive_file_id:
+            file_path = os.path.join(PDF_UPLOADS_DIR, pattern.google_drive_file_id)
             pdf_exists = os.path.exists(file_path)
         
         result.append({
@@ -1790,8 +1790,8 @@ def debug_user_patterns(user_id: int):
             "grams_min": yarn_result[3] if yarn_result else None,
             "grams_max": yarn_result[4] if yarn_result else None,
             "has_yarn_data": yarn_result is not None,
-            "pdf_file": pattern.pdf_file,
-            "has_pdf": pattern.pdf_file is not None,
+            "google_drive_file_id": pattern.google_drive_file_id,
+            "has_pdf": pattern.google_drive_file_id is not None,
             "pdf_exists_on_disk": pdf_exists
         })
     
@@ -2087,7 +2087,7 @@ def get_user_favorites(
             name=pattern.name,
             designer=pattern.designer,
             image=pattern.image if pattern.image is not None else "/placeholder.svg",
-            pdf_file=pattern.pdf_file,
+            google_drive_file_id=pattern.google_drive_file_id,
             yardage_min=yardage_min,
             yardage_max=yardage_max,
             grams_min=None,
@@ -2199,7 +2199,7 @@ def get_random_patterns():
                 name=pattern.name,
                 designer=pattern.designer,
                 image=pattern.image if pattern.image is not None else "/placeholder.svg",
-                pdf_file=pattern.pdf_file,
+                google_drive_file_id=pattern.google_drive_file_id,
                 yardage_min=yardage_min,
                 yardage_max=yardage_max,
                 grams_min=grams_min,

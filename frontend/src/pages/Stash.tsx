@@ -874,7 +874,7 @@ const Stash = () => {
                       if (pattern.pattern_url) {
                         // Open the actual Ravelry link directly
                         window.open(pattern.pattern_url, '_blank');
-                      } else if (pattern.pdf_file) {
+                      } else if (pattern.google_drive_file_id) {
                         // User-uploaded pattern with PDF - open PDF
                         window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
                       }
@@ -905,12 +905,12 @@ const Stash = () => {
                             Click to view on Ravelry →
                           </div>
                         )}
-                        {!pattern.pattern_url && pattern.pdf_file && (
+                        {!pattern.pattern_url && pattern.google_drive_file_id && (
                           <div className="mt-2 text-xs text-green-600 font-medium">
                             Click to view PDF →
                           </div>
                         )}
-                        {!pattern.pattern_url && !pattern.pdf_file && (
+                        {!pattern.pattern_url && !pattern.google_drive_file_id && (
                           <div className="mt-2 text-xs text-gray-500 font-medium">
                             No link available
                           </div>

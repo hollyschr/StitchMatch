@@ -23,7 +23,7 @@ interface Pattern {
   yardage_max?: number;
   grams_min?: number;
   grams_max?: number;
-  pdf_file?: string;
+  google_drive_file_id?: string;
 }
 
 interface PaginationInfo {

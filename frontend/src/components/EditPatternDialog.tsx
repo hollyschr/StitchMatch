@@ -22,7 +22,7 @@ interface Pattern {
   yardage_max?: number;
   grams_min?: number;
   grams_max?: number;
-  pdf_file?: string;
+  google_drive_file_id?: string;
 }
 
 interface EditPatternDialogProps {
@@ -167,7 +167,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           name: formData.name,
           designer: formData.designer,
           image: formData.image,
-          pdf_file: removePdf ? null : (selectedPdfFile ? selectedPdfFile.name : pattern.pdf_file),
+          google_drive_file_id: removePdf ? null : (selectedPdfFile ? selectedPdfFile.name : pattern.google_drive_file_id),
           description: formData.description || undefined,
           project_type: formData.project_type || undefined,
           craft_type: formData.craft_type || undefined,
@@ -201,7 +201,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
         }
 
         // Remove PDF if requested
-        if (removePdf && pattern.pdf_file) {
+        if (removePdf && pattern.google_drive_file_id) {
           // Note: We don't have a delete PDF endpoint, so we just update the database
           // The file will remain on disk but won't be associated with the pattern
         }
@@ -275,9 +275,9 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           <div className="space-y-2">
             <Label>PDF Pattern File</Label>
             <div className="space-y-2">
-              {pattern.pdf_file && !removePdf && !selectedPdfFile && (
+              {pattern.google_drive_file_id && !removePdf && !selectedPdfFile && (
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                  <span className="text-sm text-gray-700">{pattern.pdf_file}</span>
+                  <span className="text-sm text-gray-700">{pattern.google_drive_file_id}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -303,7 +303,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
                   </Button>
                 </div>
               )}
-              {(!pattern.pdf_file || removePdf) && !selectedPdfFile && (
+              {(!pattern.google_drive_file_id || removePdf) && !selectedPdfFile && (
                 <div className="relative">
                   <input
                     type="file"

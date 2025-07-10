@@ -20,7 +20,7 @@ interface Pattern {
   yardage_max?: number;
   grams_min?: number;
   grams_max?: number;
-  pdf_file?: string;
+  google_drive_file_id?: string;
 }
 
 interface YarnStash {
@@ -75,7 +75,7 @@ const PatternCard = ({
 
   // Ensure price is always a string and fallback to 'Free' if missing
   // For user-uploaded patterns (with pdf_file), show 'Owned' instead of 'Free'
-  const displayPrice = pattern.pdf_file
+  const displayPrice = pattern.google_drive_file_id
     ? 'Owned'
     : (pattern.price ? String(pattern.price) : 'Free');
 
@@ -287,7 +287,7 @@ const PatternCard = ({
               {pattern.craft_type && (
                 <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
               )}
-              {pattern.pdf_file && (
+              {pattern.google_drive_file_id && (
                 <p className="text-green-600 font-medium">✓ PDF Available</p>
               )}
             </div>
@@ -324,7 +324,7 @@ const PatternCard = ({
               ) : (
                 <div className="flex-1 mx-1"></div>
               )}
-              {pattern.pdf_file ? (
+              {pattern.google_drive_file_id ? (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -409,7 +409,7 @@ const PatternCard = ({
               
               {/* PDF buttons for patterns */}
               <div className="flex gap-2">
-                {showDownloadButton && pattern.pdf_file && (
+                {showDownloadButton && pattern.google_drive_file_id && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -422,7 +422,7 @@ const PatternCard = ({
                     Download PDF
                   </Button>
                 )}
-                {showUploadButton && !pattern.pdf_file && (
+                {showUploadButton && !pattern.google_drive_file_id && (
                   <div className="relative">
                     <input
                       type="file"
@@ -497,7 +497,7 @@ const PatternCard = ({
                     Edit
                   </Button>
                 )}
-                {showDownloadButton && pattern.pdf_file && (
+                {showDownloadButton && pattern.google_drive_file_id && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -510,7 +510,7 @@ const PatternCard = ({
                     Download PDF
                   </Button>
                 )}
-                {pattern.pdf_file && (
+                {pattern.google_drive_file_id && (
                   <Button 
                     variant="default" 
                     onClick={(e) => {
@@ -527,7 +527,7 @@ const PatternCard = ({
                     Open PDF
                   </Button>
                 )}
-                {showUploadButton && !pattern.pdf_file && (
+                {showUploadButton && !pattern.google_drive_file_id && (
                   <div className="relative">
                     <input
                       type="file"
@@ -557,7 +557,7 @@ const PatternCard = ({
               )}
             </div>
           )}
-          {variant === 'search' && pattern.pdf_file && (
+          {variant === 'search' && pattern.google_drive_file_id && (
             <div className="flex gap-2 mt-2">
               <Button
                 className="flex-1 h-9 text-xs"
@@ -659,10 +659,10 @@ const PatternCard = ({
                     </p>
                   </div>
                 )}
-                {pattern.pdf_file && (
+                {pattern.google_drive_file_id && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">PDF File:</h4>
-                    <p className="text-sm text-gray-700">{pattern.pdf_file}</p>
+                    <p className="text-sm text-gray-700">{pattern.google_drive_file_id}</p>
                   </div>
                 )}
               </div>
@@ -675,7 +675,7 @@ const PatternCard = ({
               )}
               
               {/* PDF Viewer */}
-              {pattern.pdf_file && (
+              {pattern.google_drive_file_id && (
                 <div className="border rounded-lg overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
                     <h4 className="font-medium text-sm">PDF Pattern</h4>
@@ -733,7 +733,7 @@ const PatternCard = ({
                     Edit Pattern
                   </Button>
                 )}
-                {showDownloadButton && pattern.pdf_file && (
+                {showDownloadButton && pattern.google_drive_file_id && (
                   <Button 
                     variant="outline"
                     onClick={() => window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank')}
@@ -742,7 +742,7 @@ const PatternCard = ({
                     Download PDF
                   </Button>
                 )}
-                {showUploadButton && !pattern.pdf_file && (
+                {showUploadButton && !pattern.google_drive_file_id && (
                   <div className="relative">
                     <input
                       type="file"

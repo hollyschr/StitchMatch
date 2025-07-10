@@ -26,7 +26,7 @@ interface UserPattern {
   name: string;
   designer: string;
   image: string;
-  pdf_file?: string;  // PDF filename
+  google_drive_file_id?: string;  // Google Drive file ID
   // Metadata fields (these will be stored in normalized tables)
   yardage_min?: number;
   yardage_max?: number;
@@ -155,7 +155,7 @@ const Patterns = () => {
       name: formData.get('name') as string,
       designer: formData.get('designer') as string,
       image: formData.get('image') as string || '/placeholder.svg',
-      pdf_file: selectedPdfFile ? selectedPdfFile.name : undefined,
+      google_drive_file_id: selectedPdfFile ? selectedPdfFile.name : undefined,
       yardage_min: parseNumber(formData.get('yardageMin') as string),
       yardage_max: parseNumber(formData.get('yardageMax') as string),
       grams_min: parseNumber(formData.get('gramsMin') as string),
@@ -336,8 +336,8 @@ const Patterns = () => {
   const filteredAndSortedPatterns = userPatterns
     .filter(pattern => {
       if (filterCraft !== 'all' && pattern.craft_type !== filterCraft) return false;
-      if (filterPdf === 'with-pdf' && !pattern.pdf_file) return false;
-      if (filterPdf === 'without-pdf' && pattern.pdf_file) return false;
+      if (filterPdf === 'with-pdf' && !pattern.google_drive_file_id) return false;
+      if (filterPdf === 'without-pdf' && pattern.google_drive_file_id) return false;
       return true;
     })
     .sort((a, b) => {
@@ -351,7 +351,7 @@ const Patterns = () => {
         case 'type':
           return (a.project_type || '').localeCompare(b.project_type || '');
         case 'pdf':
-          return (b.pdf_file ? 1 : 0) - (a.pdf_file ? 1 : 0);
+          return (b.google_drive_file_id ? 1 : 0) - (a.google_drive_file_id ? 1 : 0);
         default:
           return 0;
       }
@@ -564,7 +564,7 @@ const Patterns = () => {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {userPatterns.filter(p => p.pdf_file).length}
+                    {userPatterns.filter(p => p.google_drive_file_id).length}
                   </div>
                   <div className="text-sm text-gray-600">PDFs</div>
                 </div>
