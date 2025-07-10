@@ -62,6 +62,7 @@ const Stash = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   // Ref for the patterns dialog content to scroll to top on page change
   const patternsDialogRef = useRef<HTMLDivElement>(null);
+  const [allStashMatches, setAllStashMatches] = useState<any[]>([]);
 
   useEffect(() => {
     console.log('Stash component mounted');
@@ -85,6 +86,15 @@ const Stash = () => {
       navigate('/');
     }
   }, [navigate]);
+
+  // On mount, fetch all stash-matched patterns for the user (not just for a selected yarn)
+  useEffect(() => {
+    if (currentUser) {
+      fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser.user_id}?page=1&page_size=10000`)
+        .then(res => res.ok ? res.json() : { patterns: [] })
+        .then(data => setAllStashMatches(data.patterns || []));
+    }
+  }, [currentUser]);
 
   const fetchYarnStash = async (userId: number) => {
     try {
@@ -554,8 +564,8 @@ const Stash = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {yarnStash.map((yarn) => {
-              // Compute counts for this yarn
-              const allMatches = matchedPatterns.filter(
+              // Use allStashMatches for counts, not matchedPatterns
+              const allMatches = allStashMatches.filter(
                 (pattern) =>
                   pattern.required_weight &&
                   getMatchDescription(yarn.weight, pattern.required_weight)
