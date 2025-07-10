@@ -449,22 +449,35 @@ const PatternCard = ({
           
           {variant === 'patterns' && isExpanded && (
             <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+              <div>
+                <h4 className="font-medium text-sm mb-1">Designer:</h4>
+                <p className="text-sm text-gray-700">{pattern.designer}</p>
+                {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+                  <span className="block text-xs text-green-700 font-medium mt-1">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</span>
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium text-sm mb-1">Price:</h4>
+                <p className="text-sm text-gray-700">{displayPrice}</p>
+              </div>
+              {pattern.project_type && (
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Project Type:</h4>
+                  <p className="text-sm text-gray-700">{pattern.project_type}</p>
+                </div>
+              )}
+              {pattern.craft_type && (
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Craft Type:</h4>
+                  <p className="text-sm text-gray-700">{pattern.craft_type}</p>
+                </div>
+              )}
               {pattern.required_weight && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Yarn Weight:</h4>
                   <p className="text-sm text-gray-700">{pattern.required_weight}</p>
                 </div>
               )}
-              {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
-                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
-                </div>
-              )}
-              <div>
-                <h4 className="font-medium text-sm mb-1">Price:</h4>
-                <p className="text-sm text-gray-700">{displayPrice}</p>
-              </div>
               {(pattern.yardage_min || pattern.yardage_max) && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Yardage:</h4>
