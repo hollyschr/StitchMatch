@@ -1286,6 +1286,14 @@ async def download_pdf(pattern_id: int):
         db.close()
         raise HTTPException(status_code=404, detail="PDF not found for this pattern")
     
+    # Check if this is a Google Drive file ID (doesn't contain file extension)
+    if not pattern.google_drive_file_id.endswith('.pdf'):
+        # This is a Google Drive file ID - redirect to Google Drive download
+        google_drive_download_url = f"https://drive.google.com/uc?export=download&id={pattern.google_drive_file_id}"
+        db.close()
+        return {"redirect_url": google_drive_download_url}
+    
+    # This is a local file - handle as before
     file_path = os.path.join(PDF_UPLOADS_DIR, pattern.google_drive_file_id)
     
     # If file doesn't exist locally, try to restore from cloud storage

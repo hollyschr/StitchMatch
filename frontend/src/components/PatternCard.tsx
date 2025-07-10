@@ -413,9 +413,23 @@ const PatternCard = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                      try {
+                        const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
+                        const data = await response.json();
+                        
+                        if (data.redirect_url) {
+                          // This is a Google Drive file - open download URL
+                          window.open(data.redirect_url, '_blank');
+                        } else {
+                          // This is a local file - open download URL
+                          window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                        }
+                      } catch (error) {
+                        console.error('Error downloading PDF:', error);
+                        alert('PDF could not be downloaded. Please try again.');
+                      }
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" />
@@ -501,9 +515,23 @@ const PatternCard = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                      try {
+                        const response = await fetch(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`);
+                        const data = await response.json();
+                        
+                        if (data.redirect_url) {
+                          // This is a Google Drive file - open download URL
+                          window.open(data.redirect_url, '_blank');
+                        } else {
+                          // This is a local file - open download URL
+                          window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                        }
+                      } catch (error) {
+                        console.error('Error downloading PDF:', error);
+                        alert('PDF could not be downloaded. Please try again.');
+                      }
                     }}
                   >
                     <Download className="h-4 w-4 mr-1" />
