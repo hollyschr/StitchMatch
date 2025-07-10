@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -229,6 +229,14 @@ const PatternCard = ({
   // If we're in stash matching mode, all patterns shown should be green
   // Otherwise, use the individual pattern matching logic
   const isStashMatch = isStashMatchingMode || matchesStash();
+
+  // Ensure stash match is calculated when dialog opens (patterns variant)
+  useEffect(() => {
+    if (variant === 'patterns' && isDetailDialogOpen) {
+      matchesStash();
+    }
+    // eslint-disable-next-line
+  }, [isDetailDialogOpen]);
 
   const handleCardClick = () => {
     if (variant === 'patterns') {
