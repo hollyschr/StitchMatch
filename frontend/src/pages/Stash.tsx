@@ -186,7 +186,7 @@ const Stash = () => {
   // On mount, fetch all stash-matched patterns for the user (not just for a selected yarn)
   useEffect(() => {
     if (currentUser) {
-      fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser.user_id}?page=1&page_size=10000`)
+      fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser.user_id}?page=1&page_size=100000`)
         .then(res => res.ok ? res.json() : { patterns: [] })
         .then(data => setAllStashMatches(data.patterns || []));
     }
@@ -655,9 +655,9 @@ const Stash = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {yarnStash.map((yarn) => {
-              // Use allStashMatches for counts, not matchedPatterns
               const allMatches = allStashMatches.filter((pattern) => matchesStash(pattern, [yarn]));
               const uploadedMatches = allMatches.filter((pattern) => pattern.google_drive_file_id);
+              const importedMatches = allMatches.filter((pattern) => !pattern.google_drive_file_id);
               return (
                 <Card 
                   key={yarn.id} 
@@ -700,7 +700,7 @@ const Stash = () => {
                     <p><span className="font-medium">Grams:</span> {yarn.grams} g</p>
                   </div>
                   <div className="mt-2 text-xs text-green-700 font-medium">
-                    Matches: {allMatches.length} ({uploadedMatches.length} uploaded)
+                    Matches: {allMatches.length} ({uploadedMatches.length} uploaded, {importedMatches.length} imported)
                   </div>
                   <div className="mt-2 text-xs text-green-600 font-medium">
                     Click to see matched patterns
