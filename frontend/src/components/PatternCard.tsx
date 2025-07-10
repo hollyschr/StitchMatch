@@ -157,24 +157,20 @@ const PatternCard = ({
     const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
       const stashNormalized = normalizeWeight(stashWeight);
       const patternNormalized = normalizeWeight(patternWeight);
-      
       // Direct match
       if (stashNormalized === patternNormalized) {
-        return { matches: true };
+        return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      
       // Check weight mapping
       const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
       if (possiblePatternWeights.includes(patternNormalized)) {
-        return { matches: true };
+        return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      
       // Check reverse mapping
       const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
       if (possibleStashWeights.includes(stashNormalized)) {
-        return { matches: true };
+        return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      
       // Check held yarn calculations
       const heldCalculations = heldYarnCalculations[stashNormalized];
       if (heldCalculations) {
@@ -184,25 +180,22 @@ const PatternCard = ({
           }
         }
       }
-      
       // Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
       if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
-        return { matches: true };
+        return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      
       return { matches: false };
     };
 
-    // Calculate total yardage for the required weight class (including held yarn)
+    // Collect all matching stash yarns/weights
     let totalYardage = 0;
-    let matchDescription = '';
-    
+    let matchDescriptions: string[] = [];
     for (const yarn of yarnStash) {
       const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
       if (weightCheck.matches) {
         totalYardage += yarn.yardage;
         if (weightCheck.description) {
-          matchDescription = weightCheck.description;
+          matchDescriptions.push(weightCheck.description);
         }
       }
     }
@@ -214,24 +207,20 @@ const PatternCard = ({
     // Handle different yardage scenarios
     const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
     const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
-    
     let yardageMatches = false;
     if (hasMinYardage && hasMaxYardage) {
-      // Both min and max yardage - stash must be at least as much as max
       yardageMatches = totalYardage >= pattern.yardage_max;
     } else if (hasMinYardage) {
-      // Only min yardage - stash must have at least this much
       yardageMatches = totalYardage >= pattern.yardage_min;
     } else if (hasMaxYardage) {
-      // Only max yardage - stash must be at least as much as max
       yardageMatches = totalYardage >= pattern.yardage_max;
     } else {
-      return false; // No yardage info - can't determine if stash matches
+      return false;
     }
 
-    // Store match description for display (only if not already provided by API)
-    if (yardageMatches && matchDescription && !pattern.held_yarn_description) {
-      (pattern as any).heldYarnDescription = matchDescription;
+    // Store all match descriptions for display
+    if (yardageMatches && matchDescriptions.length > 0) {
+      (pattern as any).heldYarnDescription = matchDescriptions.join(', ');
     }
 
     return yardageMatches;
@@ -452,10 +441,13 @@ const PatternCard = ({
               <div>
                 <h4 className="font-medium text-sm mb-1">Designer:</h4>
                 <p className="text-sm text-gray-700">{pattern.designer}</p>
-                {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
-                  <span className="block text-xs text-green-700 font-medium mt-1">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</span>
-                )}
               </div>
+              {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
+                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
+                </div>
+              )}
               <div>
                 <h4 className="font-medium text-sm mb-1">Price:</h4>
                 <p className="text-sm text-gray-700">{displayPrice}</p>
