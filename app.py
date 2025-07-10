@@ -298,6 +298,7 @@ class PatternResponse(BaseModel):
     required_weight: Optional[str] = None
     pattern_url: Optional[str] = None
     price: Optional[str] = None  # Price for imported patterns, None for user-uploaded patterns
+    held_yarn_description: Optional[str] = None  # Description of held yarn calculation if applicable
 
 class PaginatedPatternResponse(BaseModel):
     patterns: List[PatternResponse]
@@ -1508,6 +1509,78 @@ def get_stash_matching_patterns(
             'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
         }
     
+    # Held yarn weight calculations (exact copy from frontend)
+    def get_held_yarn_calculations():
+        return {
+            'thread': [
+                {'weight': 'Lace', 'description': '2 strands of thread = Lace weight'}
+            ],
+            'lace': [
+                {'weight': 'Fingering (14 wpi)', 'description': '2 strands of lace = Fingering to Sport weight'},
+                {'weight': 'Sport (12 wpi)', 'description': '2 strands of lace = Fingering to Sport weight'}
+            ],
+            'fingering': [
+                {'weight': 'DK (11 wpi)', 'description': '2 strands of fingering = DK weight'}
+            ],
+            'sport': [
+                {'weight': 'DK (11 wpi)', 'description': '2 strands of sport = DK or Light Worsted'},
+                {'weight': 'Worsted (9 wpi)', 'description': '2 strands of sport = DK or Light Worsted'}
+            ],
+            'dk': [
+                {'weight': 'Worsted (9 wpi)', 'description': '2 strands of DK = Worsted or Aran'},
+                {'weight': 'Aran (8 wpi)', 'description': '2 strands of DK = Worsted or Aran'}
+            ],
+            'worsted': [
+                {'weight': 'Bulky (7 wpi)', 'description': '2 strands of Worsted = Chunky'}
+            ],
+            'aran': [
+                {'weight': 'Bulky (7 wpi)', 'description': '2 strands of Aran = Chunky to Super Bulky'},
+                {'weight': 'Super Bulky (5-6 wpi)', 'description': '2 strands of Aran = Chunky to Super Bulky'}
+            ],
+            'bulky': [
+                {'weight': 'Super Bulky (5-6 wpi)', 'description': '2 strands of Chunky = Super Bulky to Jumbo'},
+                {'weight': 'Jumbo (0-4 wpi)', 'description': '2 strands of Chunky = Super Bulky to Jumbo'}
+            ]
+        }
+    
+    def normalize_weight(weight_str):
+        """Normalize weight strings for comparison"""
+        import re
+        return re.sub(r'\s*\(\d+\s*wpi\)', '', weight_str.lower())
+    
+    def check_weight_match(stash_weight, pattern_weight):
+        """Check if a weight matches (including held yarn calculations)"""
+        stash_normalized = normalize_weight(stash_weight)
+        pattern_normalized = normalize_weight(pattern_weight)
+        
+        # Direct match
+        if stash_normalized == pattern_normalized:
+            return {'matches': True}
+        
+        # Check weight mapping
+        weight_mapping = get_weight_mapping()
+        possible_pattern_weights = [normalize_weight(w) for w in (weight_mapping.get(stash_weight, []) + weight_mapping.get(stash_weight.lower(), []))]
+        if pattern_normalized in possible_pattern_weights:
+            return {'matches': True}
+        
+        # Check reverse mapping
+        possible_stash_weights = [normalize_weight(w) for w in (weight_mapping.get(pattern_weight, []) + weight_mapping.get(pattern_weight.lower(), []))]
+        if stash_normalized in possible_stash_weights:
+            return {'matches': True}
+        
+        # Check held yarn calculations
+        held_calculations = get_held_yarn_calculations()
+        held_calcs = held_calculations.get(stash_normalized, [])
+        for calc in held_calcs:
+            if normalize_weight(calc['weight']) == pattern_normalized:
+                return {'matches': True, 'description': calc['description']}
+        
+        # Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+        if stash_normalized in pattern_normalized or pattern_normalized in stash_normalized:
+            return {'matches': True}
+        
+        return {'matches': False}
+    
     weight_mapping = get_weight_mapping()
     
     # Get all patterns with yarn suggestions
@@ -1596,33 +1669,14 @@ def get_stash_matching_patterns(
         
         # Frontend matching logic (exact copy from PatternCard.tsx matchesStash function)
         matching_yarns = []
+        match_description = ''
         for stash_weight, stash_yardage in stash_yardage_by_weight.items():
-            # Normalize weights for comparison
-            yarn_weight_lower = stash_weight.lower()
-            pattern_weight_lower = result.required_weight.lower()
-            
-            # Check if this yarn's weight matches the pattern's required weight
-            # First, try direct mapping from stash weight to pattern weights
-            possible_pattern_weights = [w.lower() for w in (weight_mapping.get(stash_weight, []) + weight_mapping.get(stash_weight.lower(), []))]
-            if pattern_weight_lower in possible_pattern_weights:
+            # Use the new held yarn calculation logic
+            weight_check = check_weight_match(stash_weight, result.required_weight)
+            if weight_check['matches']:
                 matching_yarns.append((stash_weight, stash_yardage))
-                continue
-            
-            # Second, try reverse mapping - check if pattern weight maps to stash weight
-            possible_stash_weights = [w.lower() for w in (weight_mapping.get(result.required_weight, []) + weight_mapping.get(result.required_weight.lower(), []))]
-            if yarn_weight_lower in possible_stash_weights:
-                matching_yarns.append((stash_weight, stash_yardage))
-                continue
-            
-            # Third, try direct string matching (case-insensitive)
-            if yarn_weight_lower == pattern_weight_lower:
-                matching_yarns.append((stash_weight, stash_yardage))
-                continue
-            
-            # Fourth, try partial matching for cases like "fingering" vs "Fingering (14 wpi)"
-            if yarn_weight_lower in pattern_weight_lower or pattern_weight_lower in yarn_weight_lower:
-                matching_yarns.append((stash_weight, stash_yardage))
-                continue
+                if 'description' in weight_check:
+                    match_description = weight_check['description']
         
         if not matching_yarns:
             continue  # No matching yarn weight
@@ -1666,7 +1720,8 @@ def get_stash_matching_patterns(
                 craft_type=result.craft_type_name,
                 required_weight=result.required_weight,
                 pattern_url=result.url,
-                price=result.price
+                price=result.price,
+                held_yarn_description=match_description if match_description else None
             ))
     
     print(f"[DEBUG] stash-match patterns matching stash: {len(matching_patterns)}")

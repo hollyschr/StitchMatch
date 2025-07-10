@@ -21,6 +21,7 @@ interface Pattern {
   grams_min?: number;
   grams_max?: number;
   google_drive_file_id?: string;
+  held_yarn_description?: string;
 }
 
 interface YarnStash {
@@ -114,39 +115,97 @@ const PatternCard = ({
       'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
     };
 
-    // Calculate total yardage for the required weight class
-    const matchingYarns = yarnStash.filter(yarn => {
-      // Normalize weights for comparison
-      const yarnWeightLower = yarn.weight.toLowerCase();
-      const patternWeightLower = pattern.required_weight.toLowerCase();
+    // Held yarn weight calculations
+    const heldYarnCalculations: { [key: string]: { weight: string, description: string }[] } = {
+      'thread': [
+        { weight: 'Lace', description: '2 strands of thread = Lace weight' }
+      ],
+      'lace': [
+        { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' },
+        { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' }
+      ],
+      'fingering': [
+        { weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' }
+      ],
+      'sport': [
+        { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' },
+        { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' }
+      ],
+      'dk': [
+        { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' },
+        { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' }
+      ],
+      'worsted': [
+        { weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' }
+      ],
+      'aran': [
+        { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' },
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }
+      ],
+      'bulky': [
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' },
+        { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }
+      ]
+    };
+
+    // Helper function to normalize weight strings for comparison
+    const normalizeWeight = (weight: string): string => {
+      return weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+    };
+
+    // Helper function to check if a weight matches (including held yarn calculations)
+    const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
+      const stashNormalized = normalizeWeight(stashWeight);
+      const patternNormalized = normalizeWeight(patternWeight);
       
-      // Check if this yarn's weight matches the pattern's required weight
-      // First, try direct mapping from stash weight to pattern weights
-      const possiblePatternWeights = (weightMapping[yarn.weight] || []).map(w => w.toLowerCase());
-      if (possiblePatternWeights.includes(patternWeightLower)) {
-        return true;
+      // Direct match
+      if (stashNormalized === patternNormalized) {
+        return { matches: true };
       }
       
-      // Second, try reverse mapping - check if pattern weight maps to stash weight
-      const possibleStashWeights = (weightMapping[pattern.required_weight] || []).map(w => w.toLowerCase());
-      if (possibleStashWeights.includes(yarnWeightLower)) {
-        return true;
+      // Check weight mapping
+      const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
+      if (possiblePatternWeights.includes(patternNormalized)) {
+        return { matches: true };
       }
       
-      // Third, try direct string matching (case-insensitive)
-      if (yarnWeightLower === patternWeightLower) {
-        return true;
+      // Check reverse mapping
+      const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+      if (possibleStashWeights.includes(stashNormalized)) {
+        return { matches: true };
       }
       
-      // Fourth, try partial matching for cases like "fingering" vs "Fingering (14 wpi)"
-      if (patternWeightLower.includes(yarnWeightLower) || yarnWeightLower.includes(patternWeightLower)) {
-        return true;
+      // Check held yarn calculations
+      const heldCalculations = heldYarnCalculations[stashNormalized];
+      if (heldCalculations) {
+        for (const calc of heldCalculations) {
+          if (normalizeWeight(calc.weight) === patternNormalized) {
+            return { matches: true, description: calc.description };
+          }
+        }
       }
       
-      return false;
-    });
+      // Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+      if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
+        return { matches: true };
+      }
+      
+      return { matches: false };
+    };
+
+    // Calculate total yardage for the required weight class (including held yarn)
+    let totalYardage = 0;
+    let matchDescription = '';
     
-    const totalYardage = matchingYarns.reduce((sum, yarn) => sum + yarn.yardage, 0);
+    for (const yarn of yarnStash) {
+      const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
+      if (weightCheck.matches) {
+        totalYardage += yarn.yardage;
+        if (weightCheck.description) {
+          matchDescription = weightCheck.description;
+        }
+      }
+    }
 
     if (totalYardage === 0) {
       return false; // No yarn in this weight class
@@ -156,22 +215,26 @@ const PatternCard = ({
     const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
     const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
     
+    let yardageMatches = false;
     if (hasMinYardage && hasMaxYardage) {
       // Both min and max yardage - stash must be at least as much as max
-      return totalYardage >= pattern.yardage_max;
-    }
-    
-    if (hasMinYardage) {
+      yardageMatches = totalYardage >= pattern.yardage_max;
+    } else if (hasMinYardage) {
       // Only min yardage - stash must have at least this much
-      return totalYardage >= pattern.yardage_min;
-    }
-    
-    if (hasMaxYardage) {
+      yardageMatches = totalYardage >= pattern.yardage_min;
+    } else if (hasMaxYardage) {
       // Only max yardage - stash must be at least as much as max
-      return totalYardage >= pattern.yardage_max;
+      yardageMatches = totalYardage >= pattern.yardage_max;
+    } else {
+      return false; // No yardage info - can't determine if stash matches
     }
-    
-    return false; // Shouldn't reach here, but just in case
+
+    // Store match description for display (only if not already provided by API)
+    if (yardageMatches && matchDescription && !pattern.held_yarn_description) {
+      (pattern as any).heldYarnDescription = matchDescription;
+    }
+
+    return yardageMatches;
   };
 
   // If we're in stash matching mode, all patterns shown should be green
@@ -235,6 +298,9 @@ const PatternCard = ({
                 <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded">
                   <Package className="h-3 w-3" />
                   <span>Match</span>
+                  {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+                    <span className="ml-1 text-green-700">• {pattern.held_yarn_description || (pattern as any).heldYarnDescription}</span>
+                  )}
                 </div>
               )}
               {showFavoriteButton && onToggleFavorite && (
