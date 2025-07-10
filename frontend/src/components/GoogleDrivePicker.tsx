@@ -39,10 +39,16 @@ const GoogleDrivePicker: React.FC<GoogleDrivePickerProps> = ({
     setIsLoading(true);
     
     try {
+      // Clean up file name - remove .pdf extension if present
+      let cleanFileName = fileName || `Pattern_${driveFileId}`;
+      if (cleanFileName.toLowerCase().endsWith('.pdf')) {
+        cleanFileName = cleanFileName.slice(0, -4);
+      }
+      
       // Create a mock file object from the Drive ID
       const file: GoogleDriveFile = {
         id: driveFileId.trim(),
-        name: fileName || `Pattern_${driveFileId}`,
+        name: cleanFileName,
         mimeType: 'application/pdf',
         webViewLink: `https://drive.google.com/file/d/${driveFileId.trim()}/view`
       };

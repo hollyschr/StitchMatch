@@ -513,13 +513,22 @@ const PatternCard = ({
                 {pattern.google_drive_file_id && (
                   <Button 
                     variant="default" 
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      const pdfWindow = window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
-                      if (pdfWindow) {
-                        pdfWindow.onerror = () => {
-                          alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
-                        };
+                      try {
+                        const response = await fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`);
+                        const data = await response.json();
+                        
+                        if (data.redirect_url) {
+                          // This is a Google Drive file - open in new tab
+                          window.open(data.redirect_url, '_blank');
+                        } else {
+                          // This is a local file - open in new tab
+                          window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                        }
+                      } catch (error) {
+                        console.error('Error opening PDF:', error);
+                        alert('PDF could not be loaded. Please try again.');
                       }
                     }}
                     className="w-full bg-black hover:bg-gray-800 !bg-opacity-100"
@@ -683,12 +692,21 @@ const PatternCard = ({
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => {
-                          const pdfWindow = window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
-                          if (pdfWindow) {
-                            pdfWindow.onerror = () => {
-                              alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
-                            };
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`);
+                            const data = await response.json();
+                            
+                            if (data.redirect_url) {
+                              // This is a Google Drive file - open in new tab
+                              window.open(data.redirect_url, '_blank');
+                            } else {
+                              // This is a local file - open in new tab
+                              window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                            }
+                          } catch (error) {
+                            console.error('Error opening PDF:', error);
+                            alert('PDF could not be loaded. Please try again.');
                           }
                         }}
                         className="h-6 px-2 text-xs bg-black hover:bg-gray-800 !bg-opacity-100"
@@ -711,11 +729,11 @@ const PatternCard = ({
                   </div>
                   <div className={isPdfFullScreen ? "h-[80vh]" : "h-96"}>
                     <iframe
-                      src={`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`}
+                      src={`https://drive.google.com/file/d/${pattern.google_drive_file_id}/preview`}
                       className="w-full h-full"
                       title="PDF Pattern"
                       onError={() => {
-                        alert('PDF could not be loaded. The file may have been lost due to server restart. Please re-upload the PDF.');
+                        alert('PDF could not be loaded. Please check if the Google Drive file is still accessible.');
                       }}
                     />
                   </div>
