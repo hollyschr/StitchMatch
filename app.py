@@ -314,7 +314,7 @@ def register_user(user: UserCreate):
         user_id=db_user.user_id,
         name=db_user.name,
         email=db_user.email,
-        profile_photo=db_user.profile_photo
+        profile_photo=str(db_user.profile_photo) if db_user.profile_photo is not None else None
     )
 
 @app.post("/auth/login", response_model=UserResponse)
@@ -338,7 +338,7 @@ def login_user(user: UserLogin):
         user_id=db_user.user_id,
         name=db_user.name,
         email=db_user.email,
-        profile_photo=db_user.profile_photo
+        profile_photo=str(db_user.profile_photo) if db_user.profile_photo is not None else None
     )
 
 @app.get("/users/{user_id}/patterns", response_model=List[PatternResponse])
