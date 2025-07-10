@@ -655,7 +655,9 @@ const Stash = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {yarnStash.map((yarn) => {
+              // Use the same logic as Search page for matching patterns to this yarn
               const allMatches = allStashMatches.filter((pattern) => matchesStash(pattern, [yarn]));
+              // Uploaded = has google_drive_file_id, Imported = does not
               const uploadedMatches = allMatches.filter((pattern) => pattern.google_drive_file_id);
               const importedMatches = allMatches.filter((pattern) => !pattern.google_drive_file_id);
               return (
