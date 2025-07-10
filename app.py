@@ -1446,8 +1446,8 @@ def get_stash_matching_patterns(
         page = 1
     if page_size < 1:
         page_size = 30
-    if page_size > 100:
-        page_size = 100
+    if page_size > 100000:
+        page_size = 100000
     
     db = SessionLocal()
     
@@ -2109,8 +2109,8 @@ def get_user_favorites(
         page = 1
     if page_size < 1:
         page_size = 30
-    if page_size > 100:
-        page_size = 100
+    if page_size > 100000:
+        page_size = 100000
     
     db = SessionLocal()
     
