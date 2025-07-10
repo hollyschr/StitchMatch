@@ -329,13 +329,29 @@ const PatternCard = ({
                   variant="ghost" 
                   size="sm"
                   className="text-xs flex-1 mx-1"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    window.open(`${API_CONFIG.baseUrl}/download-pdf/${pattern.pattern_id}`, '_blank');
+                    try {
+                      const response = await fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`);
+                      if (response.ok) {
+                        const data = await response.json();
+                        if (data.redirect_url) {
+                          // This is a Google Drive file - open in new tab
+                          window.open(data.redirect_url, '_blank');
+                        } else {
+                          // This is a local file - open in new tab
+                          window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                        }
+                      } else {
+                        console.error('Failed to open PDF:', response.status);
+                      }
+                    } catch (error) {
+                      console.error('Error opening PDF:', error);
+                    }
                   }}
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  PDF
+                  Open PDF
                 </Button>
               ) : showUploadButton ? (
                 <div className="relative flex-1 mx-1">
