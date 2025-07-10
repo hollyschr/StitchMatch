@@ -417,7 +417,7 @@ const Search = () => {
           });
         }
         setIsLoading(false);
-        toast({ title: `Found ${shuffledPatterns.length} random pattern${shuffledPatterns.length !== 1 ? 's' : ''} from ${allPatterns.length} total patterns!` });
+        toast({ title: "Found random patterns!" });
         return;
       }
       
@@ -535,7 +535,7 @@ const Search = () => {
       // Only show toast notifications for initial searches (not page changes or shuffling)
       if (isInitialSearch && !shuffle) {
         if (isRandom) {
-          toast({ title: `Found ${patterns.length} random pattern${patterns.length !== 1 ? 's' : ''} for you!` });
+          toast({ title: "Found random patterns!" });
         } else if (shouldMatchStash) {
           toast({ title: `Found ${resultCount} pattern${resultCount !== 1 ? 's' : ''} that match your stash!` });
         } else {

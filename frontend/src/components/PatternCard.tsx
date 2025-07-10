@@ -299,7 +299,7 @@ const PatternCard = ({
               variant="outline"
               onClick={(e) => {
                 e.stopPropagation();
-                setIsDetailDialogOpen(true);
+                setIsExpanded(!isExpanded);
               }}
             >
               View Details
