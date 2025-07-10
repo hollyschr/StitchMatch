@@ -702,7 +702,7 @@ const Stash = () => {
                     <p><span className="font-medium">Grams:</span> {yarn.grams} g</p>
                   </div>
                   <div className="mt-2 text-xs text-green-700 font-medium">
-                    Matches: {allMatches.length} ({uploadedMatches.length} uploaded, {importedMatches.length} imported)
+                    Matches: {allMatches.length}
                   </div>
                   <div className="mt-2 text-xs text-green-600 font-medium">
                     Click to see matched patterns
