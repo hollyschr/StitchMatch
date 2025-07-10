@@ -273,6 +273,45 @@ const PatternCard = ({
     }
   };
 
+  // Compute stash match info for patterns variant expanded card
+  let stashMatchDescriptions: string[] = [];
+  if (variant === 'patterns' && isExpanded && yarnStash && yarnStash.length > 0 && pattern.required_weight) {
+    // Use the same held yarn logic as matchesStash
+    const heldYarnCombinations = [
+      { from: ['Thread', 'Thread'], to: 'Lace' },
+      { from: ['Lace', 'Lace'], to: 'Fingering' },
+      { from: ['Sock', 'Sock'], to: 'Sport' },
+      { from: ['Fingering', 'Fingering'], to: 'DK' },
+      { from: ['Sport', 'Sport'], to: 'DK' },
+      { from: ['Sport', 'Sport'], to: 'Worsted' },
+      { from: ['DK', 'DK'], to: 'Worsted' },
+      { from: ['DK', 'DK'], to: 'Aran' },
+      { from: ['Worsted', 'Worsted'], to: 'Chunky' },
+      { from: ['Aran', 'Aran'], to: 'Chunky' },
+      { from: ['Aran', 'Aran'], to: 'Super Bulky' },
+      { from: ['Chunky', 'Chunky'], to: 'Super Bulky' },
+      { from: ['Chunky', 'Chunky'], to: 'Jumbo' },
+      { from: ['Fingering', 'Lace'], to: 'DK' },
+      { from: ['DK', 'Lace'], to: 'Worsted' },
+    ];
+    const normalize = (w: string) => w.trim().toLowerCase();
+    yarnStash.forEach(yarn => {
+      if (normalize(yarn.weight) === normalize(pattern.required_weight)) {
+        stashMatchDescriptions.push(`${yarn.weight} (direct match)`);
+      } else {
+        for (const combo of heldYarnCombinations) {
+          if (
+            combo.from.every(f => normalize(f) === normalize(yarn.weight)) &&
+            normalize(combo.to) === normalize(pattern.required_weight)
+          ) {
+            stashMatchDescriptions.push(`${combo.from.length} strands of ${yarn.weight.toLowerCase()} = ${combo.to} weight`);
+            break;
+          }
+        }
+      }
+    });
+  }
+
   return (
     <>
       <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -449,6 +488,11 @@ const PatternCard = ({
               <div>
                 <h4 className="font-medium text-sm mb-1">Designer:</h4>
                 <p className="text-sm text-gray-700">{pattern.designer}</p>
+                {stashMatchDescriptions.length > 0 && (
+                  <span className="block text-xs text-green-700 font-medium mt-1">
+                    Stash Match: {stashMatchDescriptions.join(', ')}
+                  </span>
+                )}
               </div>
               {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
                 <div>
