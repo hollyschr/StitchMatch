@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { FileText, Upload } from 'lucide-react';
-
-const API_KEY = "AIzaSyAxYBKySrX8tMXKByRF9yD3mEu0Kz79DlQ";
-const CLIENT_ID = "112772870993-crm9ehha70r7e3i081fujtd2ggec46ld.apps.googleusercontent.com";
-const SCOPE = "https://www.googleapis.com/auth/drive.file";
+import { toast } from '@/hooks/use-toast';
 
 interface GoogleDriveFile {
   id: string;
@@ -19,132 +17,143 @@ interface GoogleDrivePickerProps {
   className?: string;
 }
 
-declare global {
-  interface Window {
-    gapi: any;
-    google: any;
-  }
-}
-
 const GoogleDrivePicker: React.FC<GoogleDrivePickerProps> = ({ 
   onFileSelect, 
   onCancel,
   className = "" 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isPickerLoaded, setIsPickerLoaded] = useState(false);
-  const [oauthToken, setOauthToken] = useState<string | null>(null);
+  const [driveFileId, setDriveFileId] = useState('');
+  const [fileName, setFileName] = useState('');
 
-  useEffect(() => {
-    // Load Google API
-    const loadGoogleAPI = () => {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('auth', { callback: onAuthApiLoad });
-        window.gapi.load('picker', { callback: onPickerApiLoad });
-      };
-      document.head.appendChild(script);
-    };
-
-    if (!window.gapi) {
-      loadGoogleAPI();
-    } else {
-      window.gapi.load('auth', { callback: onAuthApiLoad });
-      window.gapi.load('picker', { callback: onPickerApiLoad });
-    }
-  }, []);
-
-  const onAuthApiLoad = () => {
-    window.gapi.auth.authorize(
-      {
-        client_id: CLIENT_ID,
-        scope: SCOPE,
-        immediate: false,
-      },
-      handleAuthResult
-    );
-  };
-
-  const onPickerApiLoad = () => {
-    setIsPickerLoaded(true);
-  };
-
-  const handleAuthResult = (authResult: any) => {
-    if (authResult && !authResult.error) {
-      setOauthToken(authResult.access_token);
-    } else {
-      console.error('Auth failed:', authResult?.error);
-    }
-  };
-
-  const handlePickFile = async () => {
-    if (!oauthToken) {
-      // Re-authenticate if no token
-      onAuthApiLoad();
+  const handleFileIdSubmit = async () => {
+    if (!driveFileId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a Google Drive file ID",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // Initialize the Google Picker
-      const picker = new window.google.picker.PickerBuilder()
-        .addView(new window.google.picker.DocsView()
-          .setIncludeFolders(true)
-          .setSelectFolderEnabled(false)
-          .setMimeTypes('application/pdf'))
-        .setOAuthToken(oauthToken)
-        .setDeveloperKey(API_KEY)
-        .setCallback((data: any) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const file = data.docs[0];
-            onFileSelect({
-              id: file.id,
-              name: file.name,
-              mimeType: file.mimeType,
-              webViewLink: file.url
-            });
-          }
-          if (data.action === window.google.picker.Action.CANCEL) {
-            onCancel?.();
-          }
-        })
-        .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
-        .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED, false)
-        .setTitle('Select a PDF pattern file')
-        .setWidth(600)
-        .setHeight(400)
-        .build();
+      // Create a mock file object from the Drive ID
+      const file: GoogleDriveFile = {
+        id: driveFileId.trim(),
+        name: fileName || `Pattern_${driveFileId}`,
+        mimeType: 'application/pdf',
+        webViewLink: `https://drive.google.com/file/d/${driveFileId.trim()}/view`
+      };
       
-      picker.setVisible(true);
+      onFileSelect(file);
+      
+      // Clear form
+      setDriveFileId('');
+      setFileName('');
+      
+      toast({
+        title: "Success",
+        description: "Google Drive file linked successfully",
+      });
+      
     } catch (error) {
-      console.error('Error opening Google Drive picker:', error);
+      console.error('Error linking Google Drive file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to link Google Drive file. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    setDriveFileId('');
+    setFileName('');
+    onCancel?.();
+  };
+
   return (
     <div className={className}>
-      <Button
-        onClick={handlePickFile}
-        disabled={!isPickerLoaded || isLoading}
-        variant="outline"
-        className="w-full"
-      >
-        {isLoading ? (
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
-            Loading...
+      <div className="space-y-4">
+        <div className="text-sm text-gray-600 mb-4">
+          <p className="mb-2">To link a Google Drive PDF:</p>
+          <ol className="list-decimal list-inside space-y-1 text-xs">
+            <li>Upload your PDF to Google Drive</li>
+            <li>Right-click the file and select "Share"</li>
+            <li>Click "Copy link"</li>
+            <li>Paste the link below (we'll extract the file ID)</li>
+          </ol>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Google Drive Link:</label>
+            <Input
+              type="text"
+              placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view"
+              value={driveFileId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setDriveFileId(value);
+                
+                // Extract file ID from Google Drive link
+                const match = value.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) {
+                  setDriveFileId(match[1]);
+                }
+              }}
+              className="w-full"
+            />
           </div>
-        ) : (
-          <div className="flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            Select PDF from Google Drive
+
+          <div>
+            <label className="block text-sm font-medium mb-1">File Name (optional):</label>
+            <Input
+              type="text"
+              placeholder="Pattern name"
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              className="w-full"
+            />
           </div>
-        )}
-      </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            onClick={handleFileIdSubmit}
+            disabled={isLoading || !driveFileId.trim()}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Linking...
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Link Google Drive File
+              </div>
+            )}
+          </Button>
+          
+          <Button
+            onClick={handleCancel}
+            variant="outline"
+            size="sm"
+          >
+            Cancel
+          </Button>
+        </div>
+
+        <div className="text-xs text-gray-500">
+          <p>💡 Tip: You can also just paste the file ID directly (the long string in the Google Drive URL)</p>
+        </div>
+      </div>
     </div>
   );
 };
