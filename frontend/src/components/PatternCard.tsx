@@ -298,9 +298,6 @@ const PatternCard = ({
                 <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded">
                   <Package className="h-3 w-3" />
                   <span>Match</span>
-                  {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
-                    <span className="ml-1 text-green-700">• {pattern.held_yarn_description || (pattern as any).heldYarnDescription}</span>
-                  )}
                 </div>
               )}
               {showFavoriteButton && onToggleFavorite && (
@@ -458,6 +455,12 @@ const PatternCard = ({
                   <p className="text-sm text-gray-700">{pattern.required_weight}</p>
                 </div>
               )}
+              {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
+                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
+                </div>
+              )}
               <div>
                 <h4 className="font-medium text-sm mb-1">Price:</h4>
                 <p className="text-sm text-gray-700">{displayPrice}</p>
@@ -549,6 +552,12 @@ const PatternCard = ({
                 <div>
                   <h4 className="font-medium text-sm mb-1">Yarn Weight:</h4>
                   <p className="text-sm text-gray-700">{pattern.required_weight}</p>
+                </div>
+              )}
+              {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
+                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
                 </div>
               )}
               {(pattern.yardage_min || pattern.yardage_max) && (
