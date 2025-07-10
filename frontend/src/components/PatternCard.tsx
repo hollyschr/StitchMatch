@@ -585,8 +585,8 @@ const PatternCard = ({
         </div>
       </Card>
 
-      {/* Detail Dialog for Patterns page */}
-      {variant === 'patterns' && (
+      {/* Detail Dialog for Patterns and Search pages */}
+      {(variant === 'patterns' || variant === 'search') && (
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
