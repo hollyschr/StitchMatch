@@ -640,10 +640,132 @@ const PatternCard = ({
                   <p className="text-sm text-gray-700">{pattern.required_weight}</p>
                 </div>
               )}
-              {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
+              {isStashMatch && yarnStash && yarnStash.length > 0 && pattern.required_weight && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
-                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
+                  <div className="text-sm text-gray-700">
+                    {pattern.held_yarn_description ? (
+                      <p className="text-green-700">{pattern.held_yarn_description}</p>
+                    ) : (() => {
+                      // Calculate specific stash match descriptions
+                      const matchDescriptions: string[] = [];
+                      const weightMapping: { [key: string]: string[] } = {
+                        'lace': ['Lace'],
+                        'cobweb': ['Cobweb'],
+                        'thread': ['Thread'],
+                        'light-fingering': ['Light Fingering'],
+                        'fingering': ['Fingering (14 wpi)', 'Fingering'],
+                        'sport': ['Sport (12 wpi)', 'Sport'],
+                        'dk': ['DK (11 wpi)', 'DK'],
+                        'worsted': ['Worsted (9 wpi)', 'Worsted'],
+                        'aran': ['Aran (8 wpi)', 'Aran'],
+                        'bulky': ['Bulky (7 wpi)', 'Bulky'],
+                        'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+                        'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+                        'Lace': ['Lace'],
+                        'Cobweb': ['Cobweb'],
+                        'Thread': ['Thread'],
+                        'Light Fingering': ['Light Fingering'],
+                        'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+                        'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+                        'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+                        'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+                        'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+                        'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+                        'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+                        'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+                      };
+
+                      const heldYarnCalculations: { [key: string]: { weight: string, description: string }[] } = {
+                        'thread': [
+                          { weight: 'Lace', description: '2 strands of thread = Lace weight' }
+                        ],
+                        'lace': [
+                          { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' },
+                          { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' }
+                        ],
+                        'fingering': [
+                          { weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' }
+                        ],
+                        'sport': [
+                          { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' },
+                          { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' }
+                        ],
+                        'dk': [
+                          { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' },
+                          { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' }
+                        ],
+                        'worsted': [
+                          { weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' }
+                        ],
+                        'aran': [
+                          { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' },
+                          { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }
+                        ],
+                        'bulky': [
+                          { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' },
+                          { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }
+                        ]
+                      };
+
+                      const normalizeWeight = (weight: string): string => {
+                        return weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+                      };
+
+                      const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
+                        const stashNormalized = normalizeWeight(stashWeight);
+                        const patternNormalized = normalizeWeight(patternWeight);
+                        
+                        // Direct match
+                        if (stashNormalized === patternNormalized) {
+                          return { matches: true, description: `${stashWeight} (direct match)` };
+                        }
+                        
+                        // Check weight mapping
+                        const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
+                        if (possiblePatternWeights.includes(patternNormalized)) {
+                          return { matches: true, description: `${stashWeight} (direct match)` };
+                        }
+                        
+                        // Check reverse mapping
+                        const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+                        if (possibleStashWeights.includes(stashNormalized)) {
+                          return { matches: true, description: `${stashWeight} (direct match)` };
+                        }
+                        
+                        // Check held yarn calculations
+                        const heldCalculations = heldYarnCalculations[stashNormalized];
+                        if (heldCalculations) {
+                          for (const calc of heldCalculations) {
+                            if (normalizeWeight(calc.weight) === patternNormalized) {
+                              return { matches: true, description: calc.description };
+                            }
+                          }
+                        }
+                        
+                        // Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+                        if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
+                          return { matches: true, description: `${stashWeight} (direct match)` };
+                        }
+                        
+                        return { matches: false };
+                      };
+
+                      // Check each yarn in stash
+                      for (const yarn of yarnStash) {
+                        const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
+                        if (weightCheck.matches && weightCheck.description) {
+                          matchDescriptions.push(weightCheck.description);
+                        }
+                      }
+
+                      return matchDescriptions.length > 0 ? (
+                        <p className="text-green-700">{matchDescriptions.join(', ')}</p>
+                      ) : (
+                        <p className="text-green-700">Pattern matches your stash!</p>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
               {(pattern.yardage_min || pattern.yardage_max) && (
