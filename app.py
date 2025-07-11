@@ -955,7 +955,8 @@ def get_all_patterns(
     uploaded_only: Optional[bool] = None,
     shuffle: Optional[bool] = None,
     free_only: Optional[bool] = None,
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None,
+    name: Optional[str] = None  # <-- Add this line
 ):
     # Validate pagination parameters
     if page < 1:
@@ -986,6 +987,8 @@ def get_all_patterns(
             )
         if designer:
             query = query.filter(Pattern.designer.ilike(f"%{designer}%"))
+        if name:  # <-- Add this block
+            query = query.filter(Pattern.name.ilike(f"%{name}%"))
         if uploaded_only:
             if not user_id:
                 db.close()
