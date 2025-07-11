@@ -832,6 +832,23 @@ const PatternCard = ({
                     <p className="text-sm text-gray-700">{pattern.required_weight}</p>
                   </div>
                 )}
+                {/* Stash Match Information */}
+                {variant === 'patterns' && isStashMatch && yarnStash && yarnStash.length > 0 && pattern.required_weight && (
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
+                    <div className="text-sm text-gray-700">
+                      {stashMatchDescriptions.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {stashMatchDescriptions.map((description, index) => (
+                            <li key={index} className="text-green-700">{description}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-green-700">Pattern matches your stash!</p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {(pattern.yardage_min || pattern.yardage_max) && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">Yardage:</h4>
