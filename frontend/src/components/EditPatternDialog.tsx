@@ -117,6 +117,15 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
     grams_max: pattern.grams_max?.toString() || ''
   });
 
+  // Helper function to get placeholder URL based on craft type
+  const getPlaceholderUrl = (craftType: string) => {
+    if (craftType === 'Crochet') {
+      return "https://sdmntpreastus.oaiusercontent.com/files/00000000-19a4-61f9-85bd-8765a0374680/raw?se=2025-07-11T03%3A49%3A03Z&sp=r&sv=2024-08-04&sr=b&scid=79d87cc5-1bc8-5049-9b97-43d8603b6a85&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-07-11T02%3A17%3A58Z&ske=2025-07-12T02%3A17%3A58Z&sks=b&skv=2024-08-04&sig=KIxN9KB4ySdkMct%2BVNgUOiJ2oPnpvDPtdoc8SJGBEdQ%3D";
+    } else {
+      return "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.everypixel.com%2Fimage-3552198752803365909&psig=AOvVaw0tfXqmM7IA54pgezO8S4ZH&ust=1752287941206000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCMiX77Xjs44DFQAAAAAdAAAAABAE";
+    }
+  };
+
   useEffect(() => {
     setFormData({
       name: pattern.name,
@@ -164,7 +173,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
         body: JSON.stringify({
           name: formData.name,
           designer: formData.designer,
-          image: formData.image,
+          image: formData.image || getPlaceholderUrl(formData.craft_type),
           google_drive_file_id: removePdf ? null : (selectedGoogleDriveFile ? selectedGoogleDriveFile.id : pattern.google_drive_file_id),
           description: formData.description || undefined,
           project_type: formData.project_type || undefined,
@@ -242,14 +251,16 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Image URL *</Label>
+            <Label htmlFor="image">Image URL</Label>
             <Input
               id="image"
               value={formData.image}
               onChange={(e) => handleInputChange('image', e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              required
+              placeholder="https://example.com/image.jpg (optional)"
             />
+            <p className="text-xs text-gray-500">
+              Leave empty to use a placeholder image based on the craft type
+            </p>
           </div>
 
           {/* PDF Management */}

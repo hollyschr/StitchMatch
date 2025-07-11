@@ -74,6 +74,15 @@ const PatternCard = ({
   const [isPdfFullScreen, setIsPdfFullScreen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
+  // Helper function to get placeholder URL based on craft type
+  const getPlaceholderUrl = (craftType?: string) => {
+    if (craftType === 'Crochet') {
+      return "https://sdmntpreastus.oaiusercontent.com/files/00000000-19a4-61f9-85bd-8765a0374680/raw?se=2025-07-11T03%3A49%3A03Z&sp=r&sv=2024-08-04&sr=b&scid=79d87cc5-1bc8-5049-9b97-43d8603b6a85&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-07-11T02%3A17%3A58Z&ske=2025-07-12T02%3A17%3A58Z&sks=b&skv=2024-08-04&sig=KIxN9KB4ySdkMct%2BVNgUOiJ2oPnpvDPtdoc8SJGBEdQ%3D";
+    } else {
+      return "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.everypixel.com%2Fimage-3552198752803365909&psig=AOvVaw0tfXqmM7IA54pgezO8S4ZH&ust=1752287941206000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCMiX77Xjs44DFQAAAAAdAAAAABAE";
+    }
+  };
+
   // Ensure price is always a string and fallback to 'Free' if missing
   // For user-uploaded patterns (with pdf_file), show 'Owned' instead of 'Free'
   const displayPrice = pattern.google_drive_file_id
@@ -318,7 +327,7 @@ const PatternCard = ({
         isStashMatch ? 'bg-green-100 border-green-400' : ''
       } ${variant === 'patterns' ? 'h-full flex flex-col' : ''} ${cardSize === 'small' ? 'max-w-xs p-2' : ''}`} onClick={handleCardClick}>
         <img 
-          src={pattern.image || "/placeholder.svg"}
+          src={pattern.image || getPlaceholderUrl(pattern.craft_type)}
           alt={pattern.name}
           className={`w-full object-cover bg-gray-200 ${
             cardSize === 'small' ? 'h-24' : (variant === 'patterns' ? 'h-32' : 'h-48')
@@ -761,7 +770,7 @@ const PatternCard = ({
               {/* Pattern Image */}
               <div className="flex justify-center">
                 <img 
-                  src={pattern.image || "/placeholder.svg"}
+                  src={pattern.image || getPlaceholderUrl(pattern.craft_type)}
                   alt={pattern.name}
                   className="max-w-full h-64 object-cover rounded-lg shadow-md"
                 />
