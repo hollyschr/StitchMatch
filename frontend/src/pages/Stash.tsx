@@ -497,17 +497,96 @@ const Stash = () => {
     { from: ['DK', 'Lace'], to: 'Worsted' },
   ];
   function getMatchDescription(yarnWeight: string, patternWeight: string) {
-    const y = yarnWeight.trim().toLowerCase();
-    const p = patternWeight.trim().toLowerCase();
-    if (y === p) return `${capitalize(yarnWeight)} (direct match)`;
-    for (const combo of heldYarnCombinations) {
-      if (
-        combo.from.every(f => f.toLowerCase() === y) &&
-        combo.to.toLowerCase() === p
-      ) {
-        return `${combo.from.length} strands of ${yarnWeight.toLowerCase()} = ${combo.to} weight`;
+    const weightMapping = {
+      'lace': ['Lace'],
+      'cobweb': ['Cobweb'],
+      'thread': ['Thread'],
+      'light-fingering': ['Light Fingering'],
+      'fingering': ['Fingering (14 wpi)', 'Fingering'],
+      'sport': ['Sport (12 wpi)', 'Sport'],
+      'dk': ['DK (11 wpi)', 'DK'],
+      'worsted': ['Worsted (9 wpi)', 'Worsted'],
+      'aran': ['Aran (8 wpi)', 'Aran'],
+      'bulky': ['Bulky (7 wpi)', 'Bulky'],
+      'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+      'Lace': ['Lace'],
+      'Cobweb': ['Cobweb'],
+      'Thread': ['Thread'],
+      'Light Fingering': ['Light Fingering'],
+      'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+      'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+      'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+      'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+      'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+      'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+      'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+    };
+
+    const heldYarnCalculations = {
+      'thread': [{ weight: 'Lace', description: '2 strands of thread = Lace weight' }],
+      'lace': [
+        { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' },
+        { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' }
+      ],
+      'fingering': [{ weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' }],
+      'sport': [
+        { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' },
+        { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' }
+      ],
+      'dk': [
+        { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' },
+        { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' }
+      ],
+      'worsted': [{ weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' }],
+      'aran': [
+        { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' },
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }
+      ],
+      'bulky': [
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' },
+        { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }
+      ]
+    };
+
+    const normalizeWeight = (weight) => weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+    
+    const stashNormalized = normalizeWeight(yarnWeight);
+    const patternNormalized = normalizeWeight(patternWeight);
+    
+    // Direct match
+    if (stashNormalized === patternNormalized) {
+      return `${capitalize(yarnWeight)} (direct match)`;
+    }
+    
+    // Check weight mapping
+    const possiblePatternWeights = (weightMapping[yarnWeight] || []).map(w => normalizeWeight(w));
+    if (possiblePatternWeights.includes(patternNormalized)) {
+      return `${capitalize(yarnWeight)} (direct match)`;
+    }
+    
+    // Check reverse mapping
+    const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+    if (possibleStashWeights.includes(stashNormalized)) {
+      return `${capitalize(yarnWeight)} (direct match)`;
+    }
+    
+    // Check held yarn calculations
+    const heldCalculations = heldYarnCalculations[stashNormalized];
+    if (heldCalculations) {
+      for (const calc of heldCalculations) {
+        if (normalizeWeight(calc.weight) === patternNormalized) {
+          return calc.description;
+        }
       }
     }
+    
+    // Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
+    if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
+      return `${capitalize(yarnWeight)} (direct match)`;
+    }
+    
     return null;
   }
   function capitalize(str: string) {
@@ -1047,9 +1126,9 @@ const Stash = () => {
                         <div className="flex-1">
                           <h3 className="font-semibold text-sm">{pattern.name}</h3>
                           <p className="text-xs text-gray-600">by {pattern.designer}</p>
-                          {matchDesc && (
-                            <p className="text-xs text-green-700 font-medium mt-1">Stash Match: {matchDesc}</p>
-                          )}
+                          <p className="text-xs text-green-700 font-medium mt-1">
+                            Stash Match: {matchDesc}
+                          </p>
                           <div className="mt-2 space-y-1 text-xs text-gray-500">
                             {pattern.project_type && (
                               <p><span className="font-medium">Type:</span> {pattern.project_type}</p>
