@@ -1024,14 +1024,23 @@ const Stash = () => {
                         if (pattern.pattern_url) {
                           window.open(pattern.pattern_url, '_blank');
                         } else if (pattern.google_drive_file_id) {
-                          // Open PDF in new tab (not download)
-                          window.open(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`, '_blank');
+                          // Fetch the redirect URL and open it in a new tab
+                          fetch(`${API_CONFIG.baseUrl}/view-pdf/${pattern.pattern_id}`)
+                            .then(res => res.json())
+                            .then(data => {
+                              if (data.redirect_url) {
+                                window.open(data.redirect_url, '_blank');
+                              }
+                            })
+                            .catch(err => {
+                              console.error('Error fetching PDF:', err);
+                            });
                         }
                       }}
                     >
                       <div className="flex items-start gap-3">
                         <img 
-                          src={pattern.image || "/placeholder.svg"}
+                          src={pattern.image || (pattern.craft_type === 'crochet' ? "https://ibb.co/bMS4G1yV" : "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.everypixel.com%2Fimage-3552198752803365909&psig=AOvVaw0tfXqmM7IA54pgezO8S4ZH&ust=1752287941206000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCMiX77Xjs44DFQAAAAAdAAAAABAE")}
                           alt={pattern.name}
                           className="w-16 h-16 object-cover rounded bg-gray-200"
                         />
