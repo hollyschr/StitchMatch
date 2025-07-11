@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart, Edit } from 'lucide-react';
 import API_CONFIG from '@/config/api';
+import GoogleDrivePicker from './GoogleDrivePicker';
 
 interface Pattern {
   pattern_id: number;
@@ -42,6 +43,7 @@ interface PatternCardProps {
   onDelete?: (patternId: number) => void;
   showUploadButton?: boolean;
   onUploadPdf?: (patternId: number, file: File) => void;
+  onUploadGoogleDrive?: (patternId: number, fileId: string, fileName: string) => void;
   showDownloadButton?: boolean;
   showEditButton?: boolean;
   onEdit?: (pattern: Pattern) => void;
@@ -60,6 +62,7 @@ const PatternCard = ({
   onDelete,
   showUploadButton = false,
   onUploadPdf,
+  onUploadGoogleDrive,
   showDownloadButton = false,
   showEditButton = false,
   onEdit,
@@ -73,6 +76,7 @@ const PatternCard = ({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isPdfFullScreen, setIsPdfFullScreen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [showGoogleDrivePicker, setShowGoogleDrivePicker] = useState(false);
 
   // Helper function to get placeholder URL based on craft type
   const getPlaceholderUrl = (craftType?: string) => {
@@ -255,11 +259,15 @@ const PatternCard = ({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && onUploadPdf) {
-      onUploadPdf(pattern.pattern_id, file);
+  const handleGoogleDriveFileSelect = (file: { id: string, name: string }) => {
+    if (onUploadGoogleDrive) {
+      onUploadGoogleDrive(pattern.pattern_id, file.id, file.name);
     }
+    setShowGoogleDrivePicker(false);
+  };
+
+  const handleGoogleDriveCancel = () => {
+    setShowGoogleDrivePicker(false);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -462,18 +470,26 @@ const PatternCard = ({
                   PDF
                 </Button>
               ) : showUploadButton ? (
-                <div className="relative flex-1 mx-1">
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleFileUpload}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <Button variant="ghost" size="sm" className="text-xs w-full">
-                    <Upload className="h-3 w-3 mr-1" />
-                    Upload
-                  </Button>
+                <div className="flex-1 mx-1">
+                  {showGoogleDrivePicker ? (
+                    <GoogleDrivePicker
+                      onFileSelect={handleGoogleDriveFileSelect}
+                      onCancel={handleGoogleDriveCancel}
+                      className="w-full"
+                    />
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowGoogleDrivePicker(true);
+                      }}
+                    >
+                      Link PDF
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1 mx-1"></div>
@@ -588,18 +604,26 @@ const PatternCard = ({
                   </Button>
                 )}
                 {showUploadButton && !pattern.google_drive_file_id && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-1" />
-                      Upload PDF
-                    </Button>
+                  <div>
+                    {showGoogleDrivePicker ? (
+                      <GoogleDrivePicker
+                        onFileSelect={handleGoogleDriveFileSelect}
+                        onCancel={handleGoogleDriveCancel}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowGoogleDrivePicker(true);
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Link PDF
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -723,18 +747,26 @@ const PatternCard = ({
                   </>
                 )}
                 {showUploadButton && !pattern.google_drive_file_id && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-1" />
-                      Upload PDF
-                    </Button>
+                  <div>
+                    {showGoogleDrivePicker ? (
+                      <GoogleDrivePicker
+                        onFileSelect={handleGoogleDriveFileSelect}
+                        onCancel={handleGoogleDriveCancel}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowGoogleDrivePicker(true);
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Link PDF
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -941,17 +973,26 @@ const PatternCard = ({
                   </Button>
                 )}
                 {showUploadButton && !pattern.google_drive_file_id && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                    />
-                    <Button variant="outline">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload PDF
-                    </Button>
+                  <div>
+                    {showGoogleDrivePicker ? (
+                      <GoogleDrivePicker
+                        onFileSelect={handleGoogleDriveFileSelect}
+                        onCancel={handleGoogleDriveCancel}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowGoogleDrivePicker(true);
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Link PDF
+                      </Button>
+                    )}
                   </div>
                 )}
                 {showDeleteButton && onDelete && (
