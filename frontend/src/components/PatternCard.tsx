@@ -80,11 +80,7 @@ const PatternCard = ({
 
   // Helper function to get placeholder URL based on craft type
   const getPlaceholderUrl = (craftType?: string) => {
-    if (craftType === 'Crochet') {
-      return "https://sdmntpreastus.oaiusercontent.com/files/00000000-19a4-61f9-85bd-8765a0374680/raw?se=2025-07-11T03%3A49%3A03Z&sp=r&sv=2024-08-04&sr=b&scid=79d87cc5-1bc8-5049-9b97-43d8603b6a85&skoid=b0fd38cc-3d33-418f-920e-4798de4acdd1&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-07-11T02%3A17%3A58Z&ske=2025-07-12T02%3A17%3A58Z&sks=b&skv=2024-08-04&sig=KIxN9KB4ySdkMct%2BVNgUOiJ2oPnpvDPtdoc8SJGBEdQ%3D";
-    } else {
-      return "https://st3.depositphotos.com/30372524/35212/v/450/depositphotos_352125152-stock-illustration-knitting-logo-design-crochet-icon.jpg";
-    }
+    return "https://t4.ftcdn.net/jpg/04/70/97/15/360_F_470971535_tR6xzNu1ogTUuv1ymANFS1Maqf8pBjVd.jpg";
   };
 
   // Ensure price is always a string and fallback to 'Free' if missing
@@ -479,9 +475,9 @@ const PatternCard = ({
                     />
                   ) : (
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
                       size="sm" 
-                      className="text-xs w-full"
+                      className="text-xs w-full border-2 border-gray-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowGoogleDrivePicker(true);
