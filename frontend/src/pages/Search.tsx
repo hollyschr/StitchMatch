@@ -442,6 +442,9 @@ const Search = () => {
           if (formData.get('designer') && formData.get('designer') !== '') {
             stashParams.append('designer', formData.get('designer') as string);
           }
+          if (formData.get('name') && formData.get('name') !== '') {
+            stashParams.append('name', formData.get('name') as string);
+          }
         }
         
         if (showUploadedOnly) {
@@ -493,6 +496,7 @@ const Search = () => {
           if (formData.get('craftType') && formData.get('craftType') !== 'any') params.append('craft_type', formData.get('craftType') as string);
           if (formData.get('weight') && formData.get('weight') !== 'any') params.append('weight', formData.get('weight') as string);
           if (formData.get('designer') && formData.get('designer') !== '') params.append('designer', formData.get('designer') as string);
+          if (formData.get('name') && formData.get('name') !== '') params.append('name', formData.get('name') as string);
           if (showUploadedOnly) {
             params.append('uploaded_only', 'true');
             if (userId !== null) params.append('user_id', String(userId));
@@ -824,6 +828,14 @@ const Search = () => {
                       <SelectItem value="any-gauge">Any gauge - designed for any gauge</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="name">Pattern name</Label>
+                  <Input 
+                    name="name"
+                    placeholder="Search by pattern name..."
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="designer">Designer</Label>
