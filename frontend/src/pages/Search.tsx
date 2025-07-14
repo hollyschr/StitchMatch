@@ -529,28 +529,37 @@ const Search = () => {
       let patterns = response.patterns;
 
       // Deduplicate: if both uploaded and imported exist, only show uploaded
+      // Also, copy pattern_url from imported to uploaded if missing
       const dedupedPatterns: Pattern[] = [];
       const seen = new Set<string>();
-      const uploadedKeys = new Set<string>();
-      // First, collect keys for uploaded patterns
-      for (const p of patterns) {
-        if (p.google_drive_file_id) {
-          uploadedKeys.add(`${p.name.toLowerCase()}|${(p.designer || '').toLowerCase()}`);
-        }
-      }
-      // Then, add only uploaded or imported if no uploaded exists
+      const uploadedMap = new Map<string, Pattern>();
+      const importedMap = new Map<string, Pattern>();
+      // First, collect uploaded and imported patterns by key
       for (const p of patterns) {
         const key = `${p.name.toLowerCase()}|${(p.designer || '').toLowerCase()}`;
-        if (uploadedKeys.has(key)) {
-          if (p.google_drive_file_id && !seen.has(key)) {
-            dedupedPatterns.push(p);
-            seen.add(key);
-          }
+        if (p.google_drive_file_id) {
+          uploadedMap.set(key, p);
         } else {
-          if (!seen.has(key)) {
-            dedupedPatterns.push(p);
-            seen.add(key);
-          }
+          importedMap.set(key, p);
+        }
+      }
+      // Now, build deduped list
+      for (const [key, uploaded] of uploadedMap.entries()) {
+        // If imported exists and uploaded is missing pattern_url, copy it
+        const imported = importedMap.get(key);
+        if (imported && !uploaded.pattern_url && imported.pattern_url) {
+          uploaded.pattern_url = imported.pattern_url;
+        }
+        if (!seen.has(key)) {
+          dedupedPatterns.push(uploaded);
+          seen.add(key);
+        }
+      }
+      // Add imported patterns that don't have an uploaded version
+      for (const [key, imported] of importedMap.entries()) {
+        if (!uploadedMap.has(key) && !seen.has(key)) {
+          dedupedPatterns.push(imported);
+          seen.add(key);
         }
       }
       // Append or replace results
