@@ -703,10 +703,10 @@ const Patterns = () => {
             {/* Pattern Grid - More compact layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {/* WIP Folder: Click to view all 'Work In Progress' patterns */}
-              <Card className="flex flex-col items-center justify-center p-6 cursor-pointer hover:shadow-lg border-2 border-blue-400 bg-blue-50 relative overflow-hidden" onClick={() => setIsWipDialogOpen(true)}>
-                {/* Background image */}
+              <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 relative overflow-hidden transition-all duration-200 hover:scale-105" onClick={() => setIsWipDialogOpen(true)}>
+                {/* Background pattern */}
                 <div 
-                  className="absolute inset-0 opacity-20"
+                  className="absolute inset-0 opacity-10"
                   style={{
                     backgroundImage: 'url(https://cdn.pixabay.com/photo/2022/07/06/21/16/lines-7306051_1280.png)',
                     backgroundSize: 'cover',
@@ -715,11 +715,13 @@ const Patterns = () => {
                   }}
                 />
                 {/* Content */}
-                <div className="relative z-10 flex flex-col items-center">
-                  <Pin className="h-8 w-8 text-blue-600 mb-2" />
-                  <div className="font-bold text-blue-700 text-lg">WIP Folder</div>
-                  <div className="text-xs text-blue-600 mt-1">{wipPatternIds.size} in progress</div>
-                  <div className="text-xs text-blue-500 mt-2 text-center">Click to view all 'Work In Progress' patterns</div>
+                <div className="relative z-10 flex flex-col items-center text-center">
+                  <div className="bg-blue-600 rounded-full p-2 mb-3">
+                    <Pin className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="font-bold text-blue-800 text-base mb-1">WIP Folder</div>
+                  <div className="text-sm text-blue-700 font-medium mb-1">{wipPatternIds.size} in progress</div>
+                  <div className="text-xs text-blue-600 text-center leading-tight">Click to view Work In Progress patterns</div>
                 </div>
               </Card>
               {/* Pattern Cards */}

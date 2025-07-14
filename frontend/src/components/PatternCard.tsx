@@ -343,10 +343,10 @@ const PatternCard = ({
         />
         <div className={`${cardSize === 'small' ? 'p-2' : (variant === 'patterns' ? 'p-3 flex-1 flex flex-col' : 'p-4')}`}>
           <div className="flex justify-between items-start mb-2">
-            <h3 className={`font-semibold ${
+            <h3 className={`font-semibold flex-1 pr-2 ${
               cardSize === 'small' ? 'text-xs leading-tight' : (variant === 'patterns' ? 'text-sm leading-tight' : 'text-lg')
             }`}>{pattern.name}</h3>
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {isStashMatch && (
                 <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded">
                   <Package className="h-3 w-3" />
@@ -355,13 +355,13 @@ const PatternCard = ({
               )}
               {typeof isWip !== 'undefined' && onToggleWip && (
                 <Button
-                  variant={isWip ? 'default' : 'ghost'}
+                  variant="ghost"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleWip(pattern.pattern_id);
                   }}
-                  className={`transition-transform ${isWip ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'} ${isWip ? 'bg-blue-100' : ''}`}
+                  className={`transition-transform ${isWip ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}
                   title={isWip ? 'Remove from WIP' : 'Mark as WIP'}
                 >
                   <Pin className={`h-4 w-4 ${isWip ? 'fill-current' : ''}`} />
