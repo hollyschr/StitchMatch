@@ -347,12 +347,6 @@ const PatternCard = ({
               cardSize === 'small' ? 'text-xs leading-tight' : (variant === 'patterns' ? 'text-sm leading-tight' : 'text-lg')
             }`}>{pattern.name}</h3>
             <div className="flex items-center gap-1 flex-shrink-0">
-              {isStashMatch && (
-                <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded">
-                  <Package className="h-3 w-3" />
-                  <span>Match</span>
-                </div>
-              )}
               {typeof isWip !== 'undefined' && onToggleWip && (
                 <Button
                   variant="ghost"
@@ -420,6 +414,12 @@ const PatternCard = ({
               )}
               {pattern.google_drive_file_id && (
                 <p className="text-green-600 font-medium">✓ PDF Available</p>
+              )}
+              {isStashMatch && (
+                <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit">
+                  <Package className="h-3 w-3" />
+                  <span>Match</span>
+                </div>
               )}
             </div>
           )}
