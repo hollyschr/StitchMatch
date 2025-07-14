@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Book, Trash2, LogOut, Heart } from 'lucide-react';
+import { Plus, Book, Trash2, LogOut, Heart, Pin } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -62,6 +62,8 @@ const Patterns = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [patternToEdit, setPatternToEdit] = useState<UserPattern | null>(null);
   const [yarnStash, setYarnStash] = useState<YarnStash[]>([]);
+  const [wipPatternIds, setWipPatternIds] = useState<Set<number>>(new Set());
+  const [isWipDialogOpen, setIsWipDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -150,6 +152,15 @@ const Patterns = () => {
     };
     loadFavoritedPatterns();
   }, []);
+
+  // Fetch WIP pattern IDs on mount
+  useEffect(() => {
+    if (!currentUser) return;
+    fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/wip`)
+      .then(res => res.json())
+      .then(ids => setWipPatternIds(new Set(ids)))
+      .catch(() => setWipPatternIds(new Set()));
+  }, [currentUser]);
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -356,6 +367,22 @@ const Patterns = () => {
       }
     } catch (error) {
       toast({ title: "Error updating favorite" });
+    }
+  };
+
+  const handleToggleWip = async (patternId: number) => {
+    if (!currentUser) return;
+    const isWip = wipPatternIds.has(patternId);
+    if (isWip) {
+      await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/wip/${patternId}`, { method: 'DELETE' });
+      setWipPatternIds(prev => {
+        const next = new Set(prev);
+        next.delete(patternId);
+        return next;
+      });
+    } else {
+      await fetch(`${API_CONFIG.endpoints.users}/${currentUser.user_id}/wip/${patternId}`, { method: 'POST' });
+      setWipPatternIds(prev => new Set(prev).add(patternId));
     }
   };
 
@@ -675,6 +702,13 @@ const Patterns = () => {
 
             {/* Pattern Grid - More compact layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {/* WIP Folder Card */}
+              <Card className="flex flex-col items-center justify-center p-6 cursor-pointer hover:shadow-lg border-2 border-blue-400 bg-blue-50" onClick={() => setIsWipDialogOpen(true)}>
+                <Pin className="h-8 w-8 text-blue-600 mb-2" />
+                <div className="font-bold text-blue-700 text-lg">WIP Folder</div>
+                <div className="text-xs text-blue-600 mt-1">{wipPatternIds.size} in progress</div>
+              </Card>
+              {/* Pattern Cards */}
               {filteredAndSortedPatterns.map((pattern) => (
                 <PatternCard
                   key={pattern.pattern_id}
@@ -691,6 +725,8 @@ const Patterns = () => {
                   showFavoriteButton={true}
                   isFavorited={favoritedPatterns.has(pattern.pattern_id)}
                   onToggleFavorite={handleToggleFavorite}
+                  isWip={wipPatternIds.has(pattern.pattern_id)}
+                  onToggleWip={handleToggleWip}
                 />
               ))}
             </div>
@@ -720,6 +756,42 @@ const Patterns = () => {
             userId={currentUser?.user_id || 0}
           />
         )}
+
+        {/* WIP Folder Dialog */}
+        <Dialog open={isWipDialogOpen} onOpenChange={setIsWipDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Work In Progress</DialogTitle>
+              <DialogDescription>Patterns you have marked as WIP</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {filteredAndSortedPatterns.filter(p => wipPatternIds.has(p.pattern_id)).length === 0 ? (
+                <div className="col-span-full text-center text-gray-500">No patterns marked as WIP yet.</div>
+              ) : (
+                filteredAndSortedPatterns.filter(p => wipPatternIds.has(p.pattern_id)).map((pattern) => (
+                  <PatternCard
+                    key={pattern.pattern_id}
+                    pattern={pattern}
+                    yarnStash={yarnStash}
+                    variant="patterns"
+                    showDeleteButton={true}
+                    onDelete={removePattern}
+                    showUploadButton={true}
+                    onUploadPdf={uploadPdfToPattern}
+                    showDownloadButton={true}
+                    showEditButton={true}
+                    onEdit={handleEditPattern}
+                    showFavoriteButton={true}
+                    isFavorited={favoritedPatterns.has(pattern.pattern_id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    isWip={true}
+                    onToggleWip={handleToggleWip}
+                  />
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart, Edit } from 'lucide-react';
+import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart, Edit, Pin } from 'lucide-react';
 import API_CONFIG from '@/config/api';
 import GoogleDrivePicker from './GoogleDrivePicker';
 
@@ -52,6 +52,8 @@ interface PatternCardProps {
   isFavorited?: boolean;
   onToggleFavorite?: (patternId: number) => void;
   cardSize?: 'default' | 'small';
+  isWip?: boolean;
+  onToggleWip?: (patternId: number) => void;
 }
 
 const PatternCard = ({ 
@@ -71,6 +73,8 @@ const PatternCard = ({
   isFavorited = false,
   onToggleFavorite,
   cardSize = 'default',
+  isWip,
+  onToggleWip,
 }: PatternCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -348,6 +352,20 @@ const PatternCard = ({
                   <Package className="h-3 w-3" />
                   <span>Match</span>
                 </div>
+              )}
+              {typeof isWip !== 'undefined' && onToggleWip && (
+                <Button
+                  variant={isWip ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleWip(pattern.pattern_id);
+                  }}
+                  className={`transition-transform ${isWip ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'} ${isWip ? 'bg-blue-100' : ''}`}
+                  title={isWip ? 'Remove from WIP' : 'Mark as WIP'}
+                >
+                  <Pin className={`h-4 w-4 ${isWip ? 'fill-current' : ''}`} />
+                </Button>
               )}
               {showFavoriteButton && onToggleFavorite && (
                 <Button
