@@ -1,0 +1,127 @@
+# PDF uploads
+pdf_uploads/
+
+# Backend importers and utility scripts (private)
+import_specific_project_types.py
+crochet_importer_optimized.py
+run_optimized_import.py
+crochet_importer_fixed.py
+update_db_schema.py
+test_pagination.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+# Allow frontend lib directory
+!frontend/src/lib/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+StitchMatch.db
+StitchMatch.db.backup
+
+# Large data files
+*.sql
+SMdata.sql
+dump.sql
+test.sql
+
+# One-time scripts and fixes
+fix_*.py
+delete_pattern_*.py
+remove_test_patterns.py
+add_favorites_table.py
+fresh_import_*.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node modules (if any frontend dependencies)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
+.vercel
+
+# Migration and database utility scripts
+create_tables.py
+convert_and_import_data.py
+migrate_to_railway.py
+add_complete_data_to_railway.py
+add_missing_patterns_to_railway.py
+add_missing_reference_data.py
+drops_sweater_importer.py
+manage_pdfs.py
+remove_null_yarns.py
+upload_pdfs_to_railway.py
+deploy_drops_to_railway.py
+backup_pdfs.py
+
+# New additions
+StitchMatch.sqbpro
+.Rhistory
+
+# Ignore all PDF files and backup folders
+pdf_backup/
+pdf_uploads/
+*.pdf
+cloud_pdfs/

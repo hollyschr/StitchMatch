@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+
+@layer base {
+  :root {
+    --background: 30 10% 98%; /* #FAFAF9 (pearl) - soft but not white for cards */
+    --foreground: 0 0% 17%; /* #2C2C2C (dark gray) */
+
+    --card: 30 10% 98%; /* #FAFAF9 (pearl) - soft but not white for pattern cards */
+    --card-foreground: 0 0% 17%; /* #2C2C2C */
+
+    --popover: 30 10% 98%;
+    --popover-foreground: 0 0% 17%;
+
+    --primary: 210 20% 60%; /* #829AB1 (soft blue-gray) */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+
+    --secondary: 180 20% 70%; /* #A3C6C4 (mint teal) */
+    --secondary-foreground: 0 0% 17%; /* #2C2C2C */
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 210 20% 60%; /* #829AB1 (soft blue-gray, as accent) */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 60% 80%; /* #F4A9A8 (soft coral) */
+    --destructive-foreground: 0 0% 17%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 210 20% 60%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 180 20% 96%; /* lighter mint teal */
+    --sidebar-foreground: 0 0% 17%;
+    --sidebar-primary: 210 20% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 60% 80%; /* soft coral */
+    --sidebar-accent-foreground: 0 0% 17%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 210 20% 60%;
+  }
+
+  .dark {
+    --background: 210 20% 20%; /* dark soft blue-gray */
+    --foreground: 0 0% 100%; /* white text */
+
+    --card: 210 20% 24%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 210 20% 24%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 210 20% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 20% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 25%;
+    --muted-foreground: 0 0% 80%;
+
+    --accent: 210 20% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 60% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 210 20% 60%;
+    --sidebar-background: 180 20% 25%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 210 20% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 60% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: 210 20% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
