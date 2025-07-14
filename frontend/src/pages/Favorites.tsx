@@ -238,8 +238,9 @@ const Favorites = () => {
                   showFavoriteButton={true}
                   isFavorited={true}
                   onToggleFavorite={handleToggleFavorite}
-                  variant="patterns"
+                  variant="search"
                   isStashMatchingMode={false}
+                  cardSize="default"
                 />
               ))}
             </div>
