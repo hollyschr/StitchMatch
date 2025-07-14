@@ -178,12 +178,12 @@ const Favorites = () => {
         </div>
 
         {isLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-              <Card key={i} className="p-3 animate-pulse">
-                <div className="bg-gray-200 h-32 rounded mb-3"></div>
-                <div className="bg-gray-200 h-3 rounded mb-2"></div>
-                <div className="bg-gray-200 h-2 rounded w-2/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="p-6 animate-pulse">
+                <div className="bg-gray-200 h-48 rounded mb-4"></div>
+                <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                <div className="bg-gray-200 h-3 rounded w-2/3"></div>
               </Card>
             ))}
           </div>
@@ -229,7 +229,7 @@ const Favorites = () => {
             </div>
 
             {/* Favorites Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {favorites.map((pattern) => (
                 <PatternCard 
                   key={pattern.pattern_id} 
@@ -240,7 +240,6 @@ const Favorites = () => {
                   onToggleFavorite={handleToggleFavorite}
                   variant="search"
                   isStashMatchingMode={false}
-                  cardSize="default"
                 />
               ))}
             </div>
