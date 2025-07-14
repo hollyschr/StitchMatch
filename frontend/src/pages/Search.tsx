@@ -26,6 +26,7 @@ interface Pattern {
   grams_min?: number;
   grams_max?: number;
   pdf_file?: string;
+  google_drive_file_id?: string; // Added for uploaded patterns
 }
 
 interface PaginationInfo {
@@ -526,12 +527,37 @@ const Search = () => {
       
       // Get patterns from response
       let patterns = response.patterns;
-      
+
+      // Deduplicate: if both uploaded and imported exist, only show uploaded
+      const dedupedPatterns: Pattern[] = [];
+      const seen = new Set<string>();
+      const uploadedKeys = new Set<string>();
+      // First, collect keys for uploaded patterns
+      for (const p of patterns) {
+        if (p.google_drive_file_id) {
+          uploadedKeys.add(`${p.name.toLowerCase()}|${(p.designer || '').toLowerCase()}`);
+        }
+      }
+      // Then, add only uploaded or imported if no uploaded exists
+      for (const p of patterns) {
+        const key = `${p.name.toLowerCase()}|${(p.designer || '').toLowerCase()}`;
+        if (uploadedKeys.has(key)) {
+          if (p.google_drive_file_id && !seen.has(key)) {
+            dedupedPatterns.push(p);
+            seen.add(key);
+          }
+        } else {
+          if (!seen.has(key)) {
+            dedupedPatterns.push(p);
+            seen.add(key);
+          }
+        }
+      }
       // Append or replace results
       if (append) {
-        setSearchResults(prev => [...prev, ...patterns]);
+        setSearchResults(prev => [...prev, ...dedupedPatterns]);
       } else {
-        setSearchResults(patterns);
+        setSearchResults(dedupedPatterns);
       }
       setIsLoading(false);
       
