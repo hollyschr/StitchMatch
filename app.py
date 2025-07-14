@@ -1440,9 +1440,10 @@ def get_stash_matching_patterns(
     craft_type: Optional[str] = None,
     weight: Optional[str] = None,
     designer: Optional[str] = None,
-    free_only: Optional[bool] = None
+    free_only: Optional[bool] = None,
+    name: Optional[str] = None  # <-- Add this line
 ):
-    print(f"[DEBUG] stash-match params: user_id={user_id}, page={page}, page_size={page_size}, uploaded_only={uploaded_only}, project_type={project_type}, craft_type={craft_type}, weight={weight}, designer={designer}, free_only={free_only}")
+    print(f"[DEBUG] stash-match params: user_id={user_id}, page={page}, page_size={page_size}, uploaded_only={uploaded_only}, project_type={project_type}, craft_type={craft_type}, weight={weight}, designer={designer}, free_only={free_only}, name={name}")
     
     # Validate pagination parameters
     if page < 1:
@@ -1619,14 +1620,11 @@ def get_stash_matching_patterns(
     # Apply filters before matching
     if uploaded_only:
         patterns_query = patterns_query.join(OwnsPattern).filter(OwnsPattern.user_id == user_id)
-    
     if project_type and project_type != 'any':
         db_project_type = map_frontend_project_type_to_db(project_type)
         patterns_query = patterns_query.filter(ProjectType.name == db_project_type)
-    
     if craft_type and craft_type != 'any':
         patterns_query = patterns_query.filter(CraftType.name == craft_type)
-    
     if weight and weight != 'any':
         # Map frontend weight to database weight format
         weight_mapping_frontend = {
@@ -1645,10 +1643,10 @@ def get_stash_matching_patterns(
         }
         db_weight = weight_mapping_frontend.get(weight, weight)
         patterns_query = patterns_query.filter(YarnType.weight == db_weight)
-    
     if designer and designer.strip():
         patterns_query = patterns_query.filter(Pattern.designer.ilike(f'%{designer}%'))
-    
+    if name and name.strip():
+        patterns_query = patterns_query.filter(Pattern.name.ilike(f'%{name}%'))
     if free_only:
         patterns_query = patterns_query.filter(
             (HasLink_Link.price.ilike('free')) |
