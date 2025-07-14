@@ -702,11 +702,24 @@ const Patterns = () => {
 
             {/* Pattern Grid - More compact layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {/* WIP Folder Card */}
-              <Card className="flex flex-col items-center justify-center p-6 cursor-pointer hover:shadow-lg border-2 border-blue-400 bg-blue-50" onClick={() => setIsWipDialogOpen(true)}>
-                <Pin className="h-8 w-8 text-blue-600 mb-2" />
-                <div className="font-bold text-blue-700 text-lg">WIP Folder</div>
-                <div className="text-xs text-blue-600 mt-1">{wipPatternIds.size} in progress</div>
+              {/* WIP Folder: Click to view all 'Work In Progress' patterns */}
+              <Card className="flex flex-col items-center justify-center p-6 cursor-pointer hover:shadow-lg border-2 border-blue-400 bg-blue-50 relative overflow-hidden" onClick={() => setIsWipDialogOpen(true)}>
+                {/* Background image */}
+                <div 
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage: 'url(https://cdn.pixabay.com/photo/2022/07/06/21/16/lines-7306051_1280.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                />
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <Pin className="h-8 w-8 text-blue-600 mb-2" />
+                  <div className="font-bold text-blue-700 text-lg">WIP Folder</div>
+                  <div className="text-xs text-blue-600 mt-1">{wipPatternIds.size} in progress</div>
+                </div>
               </Card>
               {/* Pattern Cards */}
               {filteredAndSortedPatterns.map((pattern) => (
