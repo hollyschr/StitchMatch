@@ -508,10 +508,19 @@ const PatternCard = ({
                 <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
               )}
               <p><span className="font-medium">Price:</span> {displayPrice}</p>
-              {isStashMatch && (
+              {isStashMatch && getMatchingYarns().length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit mt-1">
                   <Package className="h-3 w-3" />
-                  <span>Match</span>
+                  <button
+                    className="underline hover:text-blue-700 focus:outline-none ml-1"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setMatchDialogOpen(true);
+                    }}
+                    type="button"
+                  >
+                    View Matching Yarns
+                  </button>
                 </div>
               )}
             </div>
