@@ -1489,7 +1489,7 @@ const PatternCard = ({
                 grouped[match.yarn.weight].push(match);
               }
               return <>
-                <div className="font-semibold text-sm mb-2 text-blue-900">Total available: {totalYardage} yd, {totalGrams} g</div>
+                <div className="text-xs text-gray-600 mb-2">Total available: {totalYardage} yd, {totalGrams} g</div>
                 {Object.entries(grouped).map(([weight, yarns]) => (
                   <div key={weight}>
                     <div className="font-semibold text-sm mb-1">{weight}</div>
