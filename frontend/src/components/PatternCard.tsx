@@ -233,7 +233,7 @@ const PatternCard = ({
 
     // Store all match descriptions for display
     if (yardageMatches && matchDescriptions.length > 0) {
-      (pattern as any).heldYarnDescription = matchDescriptions.join(', ');
+      (pattern as any).heldYarnDescription = [...new Set(matchDescriptions)].join(', ');
     }
 
     return yardageMatches;
@@ -327,6 +327,8 @@ const PatternCard = ({
         }
       }
     });
+    // Deduplicate before use
+    stashMatchDescriptions = [...new Set(stashMatchDescriptions)];
   }
 
   return (
@@ -779,7 +781,7 @@ const PatternCard = ({
                       }
 
                       return matchDescriptions.length > 0 ? (
-                        <p className="text-green-700">{matchDescriptions.join(', ')}</p>
+                        <p className="text-green-700">{[...new Set(matchDescriptions)].join(', ')}</p>
                       ) : (
                         <p className="text-green-700">Pattern matches your stash!</p>
                       );
@@ -1094,7 +1096,7 @@ const PatternCard = ({
                         }
 
                         return matchDescriptions.length > 0 ? (
-                          <p className="text-green-700">{matchDescriptions.join(', ')}</p>
+                          <p className="text-green-700">{[...new Set(matchDescriptions)].join(', ')}</p>
                         ) : (
                           <p className="text-green-700">Pattern matches your stash!</p>
                         );
