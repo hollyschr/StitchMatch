@@ -509,6 +509,12 @@ const PatternCard = ({
                 <p><span className="font-medium">Craft:</span> {pattern.craft_type}</p>
               )}
               <p><span className="font-medium">Price:</span> {displayPrice}</p>
+              {isStashMatch && (
+                <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit mt-1">
+                  <Package className="h-3 w-3" />
+                  <span>Match</span>
+                </div>
+              )}
             </div>
           )}
           
@@ -1425,7 +1431,7 @@ const PatternCard = ({
         </DialogContent>
       </Dialog>
 
-      {/* Match Yarns Dialog */}
+      {/* Match Yarns Dialog - move outside of other dialogs for reliability */}
       <UIDialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
         <UIDialogContent className="max-w-lg">
           <UIDialogHeader>
