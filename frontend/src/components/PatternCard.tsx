@@ -401,37 +401,50 @@ const PatternCard = ({
     const normalizeWeight = (weight: string): string => {
       return weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
     };
-    const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
+    const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string, heldDouble?: boolean } => {
       const stashNormalized = normalizeWeight(stashWeight);
       const patternNormalized = normalizeWeight(patternWeight);
       if (stashNormalized === patternNormalized) {
-        return { matches: true, description: `${stashWeight} (direct match)` };
+        return { matches: true, description: `${stashWeight} (direct match)`, heldDouble: false };
       }
       const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
       if (possiblePatternWeights.includes(patternNormalized)) {
-        return { matches: true, description: `${stashWeight} (direct match)` };
+        return { matches: true, description: `${stashWeight} (direct match)`, heldDouble: false };
       }
       const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
       if (possibleStashWeights.includes(stashNormalized)) {
-        return { matches: true, description: `${stashWeight} (direct match)` };
+        return { matches: true, description: `${stashWeight} (direct match)`, heldDouble: false };
       }
       const heldCalculations = heldYarnCalculations[stashNormalized];
       if (heldCalculations) {
         for (const calc of heldCalculations) {
           if (normalizeWeight(calc.weight) === patternNormalized) {
-            return { matches: true, description: calc.description };
+            return { matches: true, description: calc.description, heldDouble: true };
           }
         }
       }
       if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
-        return { matches: true, description: `${stashWeight} (direct match)` };
+        return { matches: true, description: `${stashWeight} (direct match)`, heldDouble: false };
       }
       return { matches: false };
     };
     for (const yarn of yarnStash) {
       const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
       if (weightCheck.matches && weightCheck.description) {
-        matches.push({ yarn, description: weightCheck.description });
+        // For double-held, divide yardage/grams by 2
+        const effectiveYardage = weightCheck.heldDouble ? yarn.yardage / 2 : yarn.yardage;
+        const effectiveGrams = weightCheck.heldDouble ? yarn.grams / 2 : yarn.grams;
+        let meetsYardage = true;
+        let meetsGrams = true;
+        if (pattern.yardage_min) {
+          meetsYardage = effectiveYardage >= pattern.yardage_min;
+        }
+        if (pattern.grams_min) {
+          meetsGrams = effectiveGrams >= pattern.grams_min;
+        }
+        if (meetsYardage && meetsGrams) {
+          matches.push({ yarn, description: weightCheck.description });
+        }
       }
     }
     return matches;
