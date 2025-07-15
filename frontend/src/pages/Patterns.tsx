@@ -745,7 +745,7 @@ const Patterns = () => {
                 
                 <div className="flex items-center gap-2">
                   <Checkbox id="stash-matches-only" checked={showStashMatchesOnly} onCheckedChange={checked => setShowStashMatchesOnly(!!checked)} />
-                  <Label htmlFor="stash-matches-only" className="text-sm font-medium">Show only stash-matching patterns</Label>
+                  <Label htmlFor="stash-matches-only" className="text-sm font-medium">Match Stash</Label>
                 </div>
 
                 <div className="flex items-center gap-2">
