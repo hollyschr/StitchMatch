@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Package, Trash2, Download, Upload, Maximize2, Minimize2, Heart, Edit, Pin } from 'lucide-react';
 import API_CONFIG from '@/config/api';
 import GoogleDrivePicker from './GoogleDrivePicker';
+import { Dialog as UIDialog, DialogContent as UIDialogContent, DialogHeader as UIDialogHeader, DialogTitle as UIDialogTitle } from '@/components/ui/dialog';
 
 interface Pattern {
   pattern_id: number;
@@ -81,6 +82,9 @@ const PatternCard = ({
   const [isPdfFullScreen, setIsPdfFullScreen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [showGoogleDrivePicker, setShowGoogleDrivePicker] = useState(false);
+  const [matchDialogOpen, setMatchDialogOpen] = useState(false);
+  const [selectedMatchDescription, setSelectedMatchDescription] = useState<string | null>(null);
+  const [selectedMatchYarns, setSelectedMatchYarns] = useState<YarnStash[]>([]);
 
   // Helper function to get placeholder URL based on craft type
   const getPlaceholderUrl = (craftType?: string) => {
@@ -331,6 +335,109 @@ const PatternCard = ({
     stashMatchDescriptions = [...new Set(stashMatchDescriptions)];
   }
 
+  // Helper for mapping match descriptions to matching yarns
+  const getMatchDescriptionMap = () => {
+    const map: { [desc: string]: YarnStash[] } = {};
+    if (!pattern.required_weight || !yarnStash || yarnStash.length === 0) return map;
+
+    // Map stash weight values to pattern weight values
+    const weightMapping: { [key: string]: string[] } = {
+      'lace': ['Lace'],
+      'cobweb': ['Cobweb'],
+      'thread': ['Thread'],
+      'light-fingering': ['Light Fingering'],
+      'fingering': ['Fingering (14 wpi)', 'Fingering'],
+      'sport': ['Sport (12 wpi)', 'Sport'],
+      'dk': ['DK (11 wpi)', 'DK'],
+      'worsted': ['Worsted (9 wpi)', 'Worsted'],
+      'aran': ['Aran (8 wpi)', 'Aran'],
+      'bulky': ['Bulky (7 wpi)', 'Bulky'],
+      'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+      'Lace': ['Lace'],
+      'Cobweb': ['Cobweb'],
+      'Thread': ['Thread'],
+      'Light Fingering': ['Light Fingering'],
+      'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'],
+      'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+      'DK (11 wpi)': ['DK (11 wpi)', 'DK'],
+      'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+      'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'],
+      'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+      'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'],
+      'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+    };
+    const heldYarnCalculations: { [key: string]: { weight: string, description: string }[] } = {
+      'thread': [
+        { weight: 'Lace', description: '2 strands of thread = Lace weight' }
+      ],
+      'lace': [
+        { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' },
+        { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' }
+      ],
+      'fingering': [
+        { weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' }
+      ],
+      'sport': [
+        { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' },
+        { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' }
+      ],
+      'dk': [
+        { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' },
+        { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' }
+      ],
+      'worsted': [
+        { weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' }
+      ],
+      'aran': [
+        { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' },
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }
+      ],
+      'bulky': [
+        { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' },
+        { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }
+      ]
+    };
+    const normalizeWeight = (weight: string): string => {
+      return weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+    };
+    const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
+      const stashNormalized = normalizeWeight(stashWeight);
+      const patternNormalized = normalizeWeight(patternWeight);
+      if (stashNormalized === patternNormalized) {
+        return { matches: true, description: `${stashWeight} (direct match)` };
+      }
+      const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
+      if (possiblePatternWeights.includes(patternNormalized)) {
+        return { matches: true, description: `${stashWeight} (direct match)` };
+      }
+      const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+      if (possibleStashWeights.includes(stashNormalized)) {
+        return { matches: true, description: `${stashWeight} (direct match)` };
+      }
+      const heldCalculations = heldYarnCalculations[stashNormalized];
+      if (heldCalculations) {
+        for (const calc of heldCalculations) {
+          if (normalizeWeight(calc.weight) === patternNormalized) {
+            return { matches: true, description: calc.description };
+          }
+        }
+      }
+      if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
+        return { matches: true, description: `${stashWeight} (direct match)` };
+      }
+      return { matches: false };
+    };
+    for (const yarn of yarnStash) {
+      const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
+      if (weightCheck.matches && weightCheck.description) {
+        if (!map[weightCheck.description]) map[weightCheck.description] = [];
+        map[weightCheck.description].push(yarn);
+      }
+    }
+    return map;
+  };
+
   return (
     <>
       <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -530,10 +637,24 @@ const PatternCard = ({
               <div>
                 <h4 className="font-medium text-sm mb-1">Designer:</h4>
                 <p className="text-sm text-gray-700">{pattern.designer}</p>
-                {stashMatchDescriptions.length > 0 && (
-                  <span className="block text-xs text-green-700 font-medium mt-1">
-                    Stash Match: {stashMatchDescriptions.join(', ')}
-                  </span>
+                {Object.keys(getMatchDescriptionMap()).length > 0 && (
+                  <div className="block text-xs text-green-700 font-medium mt-1">
+                    Stash Match: {Object.entries(getMatchDescriptionMap()).map(([desc, yarns], i) => (
+                      <button
+                        key={desc}
+                        className="underline hover:text-blue-700 focus:outline-none mr-2"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedMatchDescription(desc);
+                          setSelectedMatchYarns(yarns);
+                          setMatchDialogOpen(true);
+                        }}
+                        type="button"
+                      >
+                        {desc}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
               {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
@@ -1303,6 +1424,31 @@ const PatternCard = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Match Yarns Dialog */}
+      <UIDialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
+        <UIDialogContent className="max-w-lg">
+          <UIDialogHeader>
+            <UIDialogTitle>Matching Yarns for: {selectedMatchDescription}</UIDialogTitle>
+          </UIDialogHeader>
+          <div className="space-y-3 mt-2">
+            {selectedMatchYarns.length === 0 ? (
+              <div className="text-gray-500">No matching yarns found.</div>
+            ) : (
+              selectedMatchYarns.map((yarn, idx) => (
+                <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50">
+                  <div className="font-medium">{yarn.yarnName}</div>
+                  <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
+                  <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
+                  <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
+                  <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
+                  <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </UIDialogContent>
+      </UIDialog>
     </>
   );
 };
