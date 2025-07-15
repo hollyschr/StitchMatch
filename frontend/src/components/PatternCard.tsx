@@ -1473,28 +1473,40 @@ const PatternCard = ({
               if (matches.length === 0) {
                 return <div className="text-gray-500">No matching yarns found.</div>;
               }
+              // Calculate total effective yardage and grams
+              let totalYardage = 0;
+              let totalGrams = 0;
+              for (const { yarn, description } of matches) {
+                // If double-held, divide by 2 (check description string for '2 strands')
+                const isDoubleHeld = description.toLowerCase().includes('2 strands');
+                totalYardage += isDoubleHeld ? yarn.yardage / 2 : yarn.yardage;
+                totalGrams += isDoubleHeld ? yarn.grams / 2 : yarn.grams;
+              }
               // Group by yarn.weight
               const grouped: { [weight: string]: { yarn: YarnStash; description: string }[] } = {};
               for (const match of matches) {
                 if (!grouped[match.yarn.weight]) grouped[match.yarn.weight] = [];
                 grouped[match.yarn.weight].push(match);
               }
-              return Object.entries(grouped).map(([weight, yarns]) => (
-                <div key={weight}>
-                  <div className="font-semibold text-sm mb-1">{weight}</div>
-                  {yarns.map(({ yarn, description }, idx) => (
-                    <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50 mb-2">
-                      <div className="font-medium">{yarn.yarnName}</div>
-                      <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
-                      <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
-                      <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
-                      <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
-                      <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
-                      <div className="text-xs text-green-700 mt-1">Match: {description}</div>
-                    </div>
-                  ))}
-                </div>
-              ));
+              return <>
+                <div className="font-semibold text-sm mb-2 text-blue-900">Total available: {totalYardage} yd, {totalGrams} g</div>
+                {Object.entries(grouped).map(([weight, yarns]) => (
+                  <div key={weight}>
+                    <div className="font-semibold text-sm mb-1">{weight}</div>
+                    {yarns.map(({ yarn, description }, idx) => (
+                      <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50 mb-2">
+                        <div className="font-medium">{yarn.yarnName}</div>
+                        <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
+                        <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
+                        <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
+                        <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
+                        <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
+                        <div className="text-xs text-green-700 mt-1">Match: {description}</div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </>;
             })()}
           </div>
         </UIDialogContent>
