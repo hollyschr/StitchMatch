@@ -335,10 +335,10 @@ const PatternCard = ({
     stashMatchDescriptions = [...new Set(stashMatchDescriptions)];
   }
 
-  // Helper for mapping match descriptions to matching yarns
-  const getMatchDescriptionMap = () => {
-    const map: { [desc: string]: YarnStash[] } = {};
-    if (!pattern.required_weight || !yarnStash || yarnStash.length === 0) return map;
+  // Helper for mapping match descriptions to matching yarns (now returns an array of {yarn, description})
+  const getMatchingYarns = () => {
+    const matches: { yarn: YarnStash; description: string }[] = [];
+    if (!pattern.required_weight || !yarnStash || yarnStash.length === 0) return matches;
 
     // Map stash weight values to pattern weight values
     const weightMapping: { [key: string]: string[] } = {
@@ -431,11 +431,10 @@ const PatternCard = ({
     for (const yarn of yarnStash) {
       const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
       if (weightCheck.matches && weightCheck.description) {
-        if (!map[weightCheck.description]) map[weightCheck.description] = [];
-        map[weightCheck.description].push(yarn);
+        matches.push({ yarn, description: weightCheck.description });
       }
     }
-    return map;
+    return matches;
   };
 
   return (
@@ -530,29 +529,19 @@ const PatternCard = ({
               {pattern.google_drive_file_id && (
                 <p className="text-green-600 font-medium">✓ PDF Available</p>
               )}
-              {isStashMatch && (
+              {isStashMatch && getMatchingYarns().length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit mt-1">
                   <Package className="h-3 w-3" />
-                  {/* clickable match descriptions */}
-                  {Object.keys(getMatchDescriptionMap()).length > 0 ? (
-                    Object.entries(getMatchDescriptionMap()).map(([desc, yarns], i) => (
-                      <button
-                        key={desc}
-                        className="underline hover:text-blue-700 focus:outline-none ml-1"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setSelectedMatchDescription(desc);
-                          setSelectedMatchYarns(yarns);
-                          setMatchDialogOpen(true);
-                        }}
-                        type="button"
-                      >
-                        {desc}
-                      </button>
-                    ))
-                  ) : (
-                    <span>Match</span>
-                  )}
+                  <button
+                    className="underline hover:text-blue-700 focus:outline-none ml-1"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setMatchDialogOpen(true);
+                    }}
+                    type="button"
+                  >
+                    View Matching Yarns
+                  </button>
                 </div>
               )}
             </div>
@@ -662,21 +651,21 @@ const PatternCard = ({
               <div>
                 <h4 className="font-medium text-sm mb-1">Designer:</h4>
                 <p className="text-sm text-gray-700">{pattern.designer}</p>
-                {Object.keys(getMatchDescriptionMap()).length > 0 && (
+                {getMatchingYarns().length > 0 && (
                   <div className="block text-xs text-green-700 font-medium mt-1">
-                    Stash Match: {Object.entries(getMatchDescriptionMap()).map(([desc, yarns], i) => (
+                    Stash Match: {getMatchingYarns().map(({ yarn, description }, i) => (
                       <button
-                        key={desc}
+                        key={yarn.id || i}
                         className="underline hover:text-blue-700 focus:outline-none mr-2"
                         onClick={e => {
                           e.stopPropagation();
-                          setSelectedMatchDescription(desc);
-                          setSelectedMatchYarns(yarns);
+                          setSelectedMatchDescription(description);
+                          setSelectedMatchYarns([yarn]);
                           setMatchDialogOpen(true);
                         }}
                         type="button"
                       >
-                        {desc}
+                        {yarn.yarnName}
                       </button>
                     ))}
                   </div>
@@ -1454,23 +1443,37 @@ const PatternCard = ({
       <UIDialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
         <UIDialogContent className="max-w-lg">
           <UIDialogHeader>
-            <UIDialogTitle>Matching Yarns for: {selectedMatchDescription}</UIDialogTitle>
+            <UIDialogTitle>Matching Yarns</UIDialogTitle>
           </UIDialogHeader>
           <div className="space-y-3 mt-2">
-            {selectedMatchYarns.length === 0 ? (
-              <div className="text-gray-500">No matching yarns found.</div>
-            ) : (
-              selectedMatchYarns.map((yarn, idx) => (
-                <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50">
-                  <div className="font-medium">{yarn.yarnName}</div>
-                  <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
-                  <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
-                  <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
-                  <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
-                  <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
+            {(() => {
+              const matches = getMatchingYarns();
+              if (matches.length === 0) {
+                return <div className="text-gray-500">No matching yarns found.</div>;
+              }
+              // Group by yarn.weight
+              const grouped: { [weight: string]: { yarn: YarnStash; description: string }[] } = {};
+              for (const match of matches) {
+                if (!grouped[match.yarn.weight]) grouped[match.yarn.weight] = [];
+                grouped[match.yarn.weight].push(match);
+              }
+              return Object.entries(grouped).map(([weight, yarns]) => (
+                <div key={weight}>
+                  <div className="font-semibold text-sm mb-1">{weight}</div>
+                  {yarns.map(({ yarn, description }, idx) => (
+                    <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50 mb-2">
+                      <div className="font-medium">{yarn.yarnName}</div>
+                      <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
+                      <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
+                      <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
+                      <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
+                      <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
+                      <div className="text-xs text-green-700 mt-1">Match: {description}</div>
+                    </div>
+                  ))}
                 </div>
-              ))
-            )}
+              ));
+            })()}
           </div>
         </UIDialogContent>
       </UIDialog>
