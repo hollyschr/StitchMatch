@@ -531,9 +531,28 @@ const PatternCard = ({
                 <p className="text-green-600 font-medium">✓ PDF Available</p>
               )}
               {isStashMatch && (
-                <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit">
+                <div className="flex items-center gap-1 text-xs text-green-800 bg-green-200 px-2 py-1 rounded w-fit mt-1">
                   <Package className="h-3 w-3" />
-                  <span>Match</span>
+                  {/* clickable match descriptions */}
+                  {Object.keys(getMatchDescriptionMap()).length > 0 ? (
+                    Object.entries(getMatchDescriptionMap()).map(([desc, yarns], i) => (
+                      <button
+                        key={desc}
+                        className="underline hover:text-blue-700 focus:outline-none ml-1"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedMatchDescription(desc);
+                          setSelectedMatchYarns(yarns);
+                          setMatchDialogOpen(true);
+                        }}
+                        type="button"
+                      >
+                        {desc}
+                      </button>
+                    ))
+                  ) : (
+                    <span>Match</span>
+                  )}
                 </div>
               )}
             </div>
