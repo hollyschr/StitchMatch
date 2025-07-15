@@ -300,32 +300,40 @@ const Stash = () => {
     if (!editingYarn) return;
 
     const formData = new FormData(event.currentTarget);
-    
-    const updatedYarn: YarnStash = {
-      id: editingYarn.id,
-      yarnName: formData.get('yarnName') as string,
+    const updatedYarn = {
+      yarn_name: formData.get('yarnName') as string,
       brand: formData.get('brand') as string,
       weight: formData.get('weight') as string,
-      fiber: formData.get('fiber') ? (formData.get('fiber') as string) : null,
-      yardage: parseInt(formData.get('yardage') as string),
-      grams: parseInt(formData.get('grams') as string),
+      fiber: formData.get('fiber') ? (formData.get('fiber') as string) : '',
+      yardage: parseFloat(formData.get('yardage') as string),
+      grams: parseFloat(formData.get('grams') as string),
     };
 
     try {
-      const response = await fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
-        method: 'PUT',
+      // 1. Delete the old yarn from the user's stash
+      const deleteRes = await fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/${editingYarn.id}`, {
+        method: 'DELETE',
+      });
+      if (!deleteRes.ok) {
+        toast({ title: 'Error removing old yarn', variant: 'destructive' });
+        return;
+      }
+      // 2. Add the new yarn with updated values
+      const addRes = await fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedYarn),
       });
-
-      if (response.ok) {
-        const updatedYarnStash = yarnStash.map(yarn => yarn.id === editingYarn.id ? updatedYarn : yarn);
-        setYarnStash(updatedYarnStash);
-        localStorage.setItem('yarnStash', JSON.stringify(updatedYarnStash));
-        setIsEditYarnDialogOpen(false);
-        setEditingYarn(null);
-        toast({ title: 'Yarn updated successfully!' });
+      if (!addRes.ok) {
+        toast({ title: 'Error adding updated yarn', variant: 'destructive' });
+        return;
       }
+      const data = await addRes.json();
+      // 3. Refresh the yarn stash
+      fetchYarnStash(currentUser!.user_id);
+      setIsEditYarnDialogOpen(false);
+      setEditingYarn(null);
+      toast({ title: 'Yarn updated successfully!' });
     } catch (error) {
       console.error('Error updating yarn:', error);
       toast({ title: 'Error updating yarn', variant: 'destructive' });
