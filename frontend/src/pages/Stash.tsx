@@ -306,7 +306,7 @@ const Stash = () => {
       yarnName: formData.get('yarnName') as string,
       brand: formData.get('brand') as string,
       weight: formData.get('weight') as string,
-      fiber: formData.get('fiber') as string,
+      fiber: formData.get('fiber') ? (formData.get('fiber') as string) : null,
       yardage: parseInt(formData.get('yardage') as string),
       grams: parseInt(formData.get('grams') as string),
     };
