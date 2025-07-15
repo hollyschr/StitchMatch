@@ -14,6 +14,7 @@ import PatternCard from '@/components/PatternCard';
 import { EditPatternDialog } from '@/components/EditPatternDialog';
 import GoogleDrivePicker from '@/components/GoogleDrivePicker';
 import API_CONFIG from '@/config/api';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface User {
   user_id: number;
@@ -64,6 +65,7 @@ const Patterns = () => {
   const [yarnStash, setYarnStash] = useState<YarnStash[]>([]);
   const [wipPatternIds, setWipPatternIds] = useState<Set<number>>(new Set());
   const [isWipDialogOpen, setIsWipDialogOpen] = useState(false);
+  const [showStashMatchesOnly, setShowStashMatchesOnly] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -394,6 +396,71 @@ const Patterns = () => {
       if (filterPdf === 'without-pdf' && pattern.google_drive_file_id) return false;
       return true;
     })
+    .filter(pattern => {
+      if (!showStashMatchesOnly) return true;
+      // Use the same logic as PatternCard for stash match
+      if (!pattern.required_weight || yarnStash.length === 0) return false;
+      // Replicate matchesStash logic from PatternCard
+      const weightMapping = {
+        'lace': ['Lace'], 'cobweb': ['Cobweb'], 'thread': ['Thread'], 'light-fingering': ['Light Fingering'],
+        'fingering': ['Fingering (14 wpi)', 'Fingering'], 'sport': ['Sport (12 wpi)', 'Sport'], 'dk': ['DK (11 wpi)', 'DK'],
+        'worsted': ['Worsted (9 wpi)', 'Worsted'], 'aran': ['Aran (8 wpi)', 'Aran'], 'bulky': ['Bulky (7 wpi)', 'Bulky'],
+        'super-bulky': ['Super Bulky (5-6 wpi)', 'Super Bulky'], 'jumbo': ['Jumbo (0-4 wpi)', 'Jumbo'],
+        'Lace': ['Lace'], 'Cobweb': ['Cobweb'], 'Thread': ['Thread'], 'Light Fingering': ['Light Fingering'],
+        'Fingering (14 wpi)': ['Fingering (14 wpi)', 'Fingering'], 'Sport (12 wpi)': ['Sport (12 wpi)', 'Sport'],
+        'DK (11 wpi)': ['DK (11 wpi)', 'DK'], 'Worsted (9 wpi)': ['Worsted (9 wpi)', 'Worsted'],
+        'Aran (8 wpi)': ['Aran (8 wpi)', 'Aran'], 'Bulky (7 wpi)': ['Bulky (7 wpi)', 'Bulky'],
+        'Super Bulky (5-6 wpi)': ['Super Bulky (5-6 wpi)', 'Super Bulky'], 'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
+      };
+      const heldYarnCalculations = {
+        'thread': [ { weight: 'Lace', description: '2 strands of thread = Lace weight' } ],
+        'lace': [ { weight: 'Fingering (14 wpi)', description: '2 strands of lace = Fingering to Sport weight' }, { weight: 'Sport (12 wpi)', description: '2 strands of lace = Fingering to Sport weight' } ],
+        'fingering': [ { weight: 'DK (11 wpi)', description: '2 strands of fingering = DK weight' } ],
+        'sport': [ { weight: 'DK (11 wpi)', description: '2 strands of sport = DK or Light Worsted' }, { weight: 'Worsted (9 wpi)', description: '2 strands of sport = DK or Light Worsted' } ],
+        'dk': [ { weight: 'Worsted (9 wpi)', description: '2 strands of DK = Worsted or Aran' }, { weight: 'Aran (8 wpi)', description: '2 strands of DK = Worsted or Aran' } ],
+        'worsted': [ { weight: 'Bulky (7 wpi)', description: '2 strands of Worsted = Chunky' } ],
+        'aran': [ { weight: 'Bulky (7 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' }, { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Aran = Chunky to Super Bulky' } ],
+        'bulky': [ { weight: 'Super Bulky (5-6 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' }, { weight: 'Jumbo (0-4 wpi)', description: '2 strands of Chunky = Super Bulky to Jumbo' } ]
+      };
+      const normalizeWeight = (weight) => weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
+      const checkWeightMatch = (stashWeight, patternWeight) => {
+        const stashNormalized = normalizeWeight(stashWeight);
+        const patternNormalized = normalizeWeight(patternWeight);
+        if (stashNormalized === patternNormalized) return true;
+        const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
+        if (possiblePatternWeights.includes(patternNormalized)) return true;
+        const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
+        if (possibleStashWeights.includes(stashNormalized)) return true;
+        const heldCalculations = heldYarnCalculations[stashNormalized];
+        if (heldCalculations) {
+          for (const calc of heldCalculations) {
+            if (normalizeWeight(calc.weight) === patternNormalized) return true;
+          }
+        }
+        if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) return true;
+        return false;
+      };
+      let totalYardage = 0;
+      for (const yarn of yarnStash) {
+        if (checkWeightMatch(yarn.weight, pattern.required_weight)) {
+          totalYardage += yarn.yardage;
+        }
+      }
+      if (totalYardage === 0) return false;
+      const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
+      const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
+      let yardageMatches = false;
+      if (hasMinYardage && hasMaxYardage) {
+        yardageMatches = totalYardage >= pattern.yardage_max;
+      } else if (hasMinYardage) {
+        yardageMatches = totalYardage >= pattern.yardage_min;
+      } else if (hasMaxYardage) {
+        yardageMatches = totalYardage >= pattern.yardage_max;
+      } else {
+        return false;
+      }
+      return yardageMatches;
+    })
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
@@ -676,6 +743,11 @@ const Patterns = () => {
                   </div>
                 </div>
                 
+                <div className="flex items-center gap-2">
+                  <Checkbox id="stash-matches-only" checked={showStashMatchesOnly} onCheckedChange={checked => setShowStashMatchesOnly(!!checked)} />
+                  <Label htmlFor="stash-matches-only" className="text-sm font-medium">Show only stash-matching patterns</Label>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Label htmlFor="sortBy" className="text-sm font-medium">Sort by:</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
