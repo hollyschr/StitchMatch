@@ -210,7 +210,9 @@ const PatternCard = ({
     for (const yarn of yarnStash) {
       const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
       if (weightCheck.matches) {
-        totalYardage += yarn.yardage;
+        // For double-held, divide yardage by 2
+        const isDoubleHeld = weightCheck.description && weightCheck.description.toLowerCase().includes('2 strands');
+        totalYardage += isDoubleHeld ? yarn.yardage / 2 : yarn.yardage;
         if (weightCheck.description) {
           matchDescriptions.push(weightCheck.description);
         }
