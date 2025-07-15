@@ -858,7 +858,6 @@ const Stash = () => {
                     name="fiber" 
                     placeholder="e.g., 100% wool" 
                     defaultValue={editingYarn.fiber}
-                    required 
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
