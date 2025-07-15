@@ -1450,7 +1450,7 @@ const PatternCard = ({
         </DialogContent>
       </Dialog>
 
-      {/* Match Yarns Dialog - move outside of other dialogs for reliability */}
+      {/* Match Yarns Dialog - now inside the Card */}
       <UIDialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
         <UIDialogContent className="max-w-lg">
           <UIDialogHeader>
