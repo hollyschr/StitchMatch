@@ -1490,18 +1490,17 @@ const PatternCard = ({
               }
               return <>
                 {Object.entries(grouped).map(([weight, yarns]) => {
-                  // Calculate total effective yardage/grams for this group
-                  let groupTotalYardage = 0;
-                  let groupTotalGrams = 0;
-                  for (const { yarn, description } of yarns) {
-                    const isDoubleHeld = description.toLowerCase().includes('2 strands');
-                    groupTotalYardage += isDoubleHeld ? yarn.yardage / 2 : yarn.yardage;
-                    groupTotalGrams += isDoubleHeld ? yarn.grams / 2 : yarn.grams;
+                  // Calculate total actual yardage/grams for this group (not divided)
+                  let groupActualYardage = 0;
+                  let groupActualGrams = 0;
+                  for (const { yarn } of yarns) {
+                    groupActualYardage += yarn.yardage;
+                    groupActualGrams += yarn.grams;
                   }
                   return (
                     <div key={weight}>
                       <div className="font-semibold text-sm mb-1">{weight}</div>
-                      <div className="text-xs text-gray-600 mb-1">Total available: {groupTotalYardage} yd, {groupTotalGrams} g</div>
+                      <div className="text-xs text-gray-600 mb-1">Total available: {groupActualYardage} yd, {groupActualGrams} g</div>
                       {yarns.map(({ yarn, description }, idx) => (
                         <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50 mb-2">
                           <div className="font-medium">{yarn.yarnName}</div>
