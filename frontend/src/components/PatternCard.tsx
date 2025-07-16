@@ -57,6 +57,33 @@ interface PatternCardProps {
   onToggleWip?: (patternId: number) => void;
 }
 
+const WEIGHT_DISPLAY_MAP: { [key: string]: string } = {
+  'lace': 'Lace',
+  'cobweb': 'Cobweb',
+  'thread': 'Thread',
+  'light-fingering': 'Light Fingering',
+  'fingering': 'Fingering (14 wpi)',
+  'sport': 'Sport (12 wpi)',
+  'dk': 'DK (11 wpi)',
+  'worsted': 'Worsted (9 wpi)',
+  'aran': 'Aran (8 wpi)',
+  'bulky': 'Bulky (7 wpi)',
+  'super-bulky': 'Super Bulky (5-6 wpi)',
+  'jumbo': 'Jumbo (0-4 wpi)',
+  'dk (11 wpi)': 'DK (11 wpi)',
+  'worsted (9 wpi)': 'Worsted (9 wpi)',
+  'aran (8 wpi)': 'Aran (8 wpi)',
+  'bulky (7 wpi)': 'Bulky (7 wpi)',
+  'super bulky (5-6 wpi)': 'Super Bulky (5-6 wpi)',
+  'jumbo (0-4 wpi)': 'Jumbo (0-4 wpi)',
+  // Add more as needed
+};
+function getDisplayWeight(weight: string | undefined): string {
+  if (!weight) return '';
+  // Try direct match, then lowercased
+  return WEIGHT_DISPLAY_MAP[weight] || WEIGHT_DISPLAY_MAP[weight.toLowerCase()] || weight.charAt(0).toUpperCase() + weight.slice(1);
+}
+
 const PatternCard = ({ 
   pattern, 
   yarnStash = [], 
@@ -735,7 +762,7 @@ const PatternCard = ({
               {pattern.required_weight && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Yarn Weight:</h4>
-                  <p className="text-sm text-gray-700">{pattern.required_weight}</p>
+                  <p className="text-sm text-gray-700">{getDisplayWeight(pattern.required_weight)}</p>
                 </div>
               )}
               {(pattern.yardage_min || pattern.yardage_max) && (
@@ -832,7 +859,7 @@ const PatternCard = ({
               {pattern.required_weight && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Yarn Weight:</h4>
-                  <p className="text-sm text-gray-700">{pattern.required_weight}</p>
+                  <p className="text-sm text-gray-700">{getDisplayWeight(pattern.required_weight)}</p>
                 </div>
               )}
               {isStashMatch && yarnStash && yarnStash.length > 0 && pattern.required_weight && (
@@ -1149,7 +1176,7 @@ const PatternCard = ({
                 {pattern.required_weight && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">Yarn Weight:</h4>
-                    <p className="text-sm text-gray-700">{pattern.required_weight}</p>
+                    <p className="text-sm text-gray-700">{getDisplayWeight(pattern.required_weight)}</p>
                   </div>
                 )}
                 {/* Stash Match Information */}
@@ -1522,13 +1549,13 @@ const PatternCard = ({
                   }
                   return (
                     <div key={weight}>
-                      <div className="font-semibold text-sm mb-1">{weight}</div>
+                      <div className="font-semibold text-sm mb-1">{getDisplayWeight(weight)}</div>
                       <div className="text-xs text-gray-600 mb-1">Total available: {groupActualYardage} yd, {groupActualGrams} g</div>
                       {yarns.map(({ yarn, description }, idx) => (
                         <div key={yarn.id || idx} className="border rounded p-2 bg-gray-50 mb-2">
                           <div className="font-medium">{yarn.yarnName}</div>
                           <div className="text-xs text-gray-600">Brand: {yarn.brand}</div>
-                          <div className="text-xs text-gray-600">Weight: {yarn.weight}</div>
+                          <div className="text-xs text-gray-600">Weight: {getDisplayWeight(yarn.weight)}</div>
                           <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
                           <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
                           <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
