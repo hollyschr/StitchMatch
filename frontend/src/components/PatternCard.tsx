@@ -219,7 +219,7 @@ const PatternCard = ({
           if (weightCheck.description) {
             matchDescriptions.push(weightCheck.description);
           }
-          break; // Only count each yarn once, even if it matches multiple weights
+          // Do NOT break here; sum all matching yarns for all possible weights
         }
       }
     }
