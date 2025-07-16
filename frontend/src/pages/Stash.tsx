@@ -835,7 +835,7 @@ const Stash = () => {
                   </div>
                   <div className="space-y-1 text-xs text-gray-600 flex-1">
                     <p><span className="font-medium">Brand:</span> {yarn.brand}</p>
-                    <p><span className="font-medium">Weight:</span> {yarn.weight}</p>
+                    <p><span className="font-medium">Weight:</span> {capitalize(yarn.weight)}</p>
                     <p><span className="font-medium">Fiber:</span> {yarn.fiber}</p>
                     <p><span className="font-medium">Yardage:</span> {yarn.yardage} yds</p>
                     <p><span className="font-medium">Grams:</span> {yarn.grams} g</p>
