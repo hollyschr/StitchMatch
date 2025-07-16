@@ -140,6 +140,22 @@ function matchesStash(pattern, yarnStash) {
   return yardageMatches;
 }
 
+// Add a helper to calculate total yardage by weight
+function getStashSummary(yarnStash) {
+  const summary = {};
+  for (const yarn of yarnStash) {
+    if (!yarn.weight) continue;
+    if (!summary[yarn.weight]) summary[yarn.weight] = 0;
+    summary[yarn.weight] += yarn.yardage || 0;
+  }
+  return summary;
+}
+
+// Add a helper to capitalize the first letter of a string
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 const Stash = () => {
   console.log('Stash component function called');
   const navigate = useNavigate();
@@ -655,6 +671,8 @@ const Stash = () => {
     return <div>Loading...</div>;
   }
 
+  const stashSummary = getStashSummary(yarnStash);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E2F0FA] via-[#F9F9F6] to-[#FDFCFB]">
       <Header />
@@ -759,6 +777,19 @@ const Stash = () => {
                 </form>
               </DialogContent>
             </Dialog>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Your Stash Summary</h3>
+            {Object.keys(stashSummary).length === 0 ? (
+              <p className="text-gray-500">No yarn in your stash yet.</p>
+            ) : (
+              <ul className="text-sm text-gray-700">
+                {(Object.entries(stashSummary) as [string, number][]).map(([weight, yards]) => (
+                  <li key={weight}><span className="font-medium">{capitalize(weight)}:</span> {yards} yards</li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
