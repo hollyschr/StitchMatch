@@ -506,7 +506,9 @@ const PatternCard = ({
         // Match at start, after space, or before punctuation/space/parenthesis
         const regex = new RegExp(`(^|[\s\(\[\{{\.,;:])${w}(?=\b|\s|\(|\)|\.|,|;|:|$)`, 'gi');
         if (regex.test(result)) {
-          result = result.replace(regex, (match, p1) => `${p1}${getDisplayWeight(w)}`);
+          // Remove (wpi info) from the canonical weight for stash match description
+          let display = getDisplayWeight(w).replace(/ \(\d+ wpi\)/i, '');
+          result = result.replace(regex, (match, p1) => `${p1}${display}`);
           replaced = true;
         }
       }
