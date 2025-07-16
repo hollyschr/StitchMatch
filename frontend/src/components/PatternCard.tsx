@@ -1008,7 +1008,7 @@ const PatternCard = ({
                         }
                       }
 
-                      return <p className="text-green-700">{capitalizeWeightInDescription(matchDescriptions.join(', '))}</p>;
+                      return <p className="text-green-700">{capitalizeWeightInDescription([...new Set(matchDescriptions)].join(', '))}</p>;
                     })()}
                   </div>
                 </div>
