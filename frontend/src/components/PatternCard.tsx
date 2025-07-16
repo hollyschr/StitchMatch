@@ -883,7 +883,7 @@ const PatternCard = ({
                   <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
                   <div className="text-sm text-gray-700">
                     {pattern.held_yarn_description ? (
-                      <p className="text-green-700">{pattern.held_yarn_description}</p>
+                      <p className="text-green-700">{capitalizeWeightInDescription(pattern.held_yarn_description)}</p>
                     ) : (() => {
                       // Calculate specific stash match descriptions
                       const matchDescriptions: string[] = [];
@@ -1201,7 +1201,7 @@ const PatternCard = ({
                     <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
                     <div className="text-sm text-gray-700">
                       {pattern.held_yarn_description ? (
-                        <p className="text-green-700">{pattern.held_yarn_description}</p>
+                        <p className="text-green-700">{capitalizeWeightInDescription(pattern.held_yarn_description)}</p>
                       ) : (() => {
                         // Calculate specific stash match descriptions
                         const matchDescriptions: string[] = [];
