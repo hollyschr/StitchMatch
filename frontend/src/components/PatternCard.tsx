@@ -451,6 +451,12 @@ const PatternCard = ({
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
+  // Update the capitalize function to capitalize all yarn weight words in match descriptions
+  function capitalizeMatchDescription(desc: string) {
+    // Capitalize after 'strands of ', at start, and after '='
+    return desc.replace(/(strands of |^|= |, |\()([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase());
+  }
+
   return (
     <>
       <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -1510,7 +1516,7 @@ const PatternCard = ({
                           <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
                           <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
                           <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
-                          <div className="text-xs text-green-700 mt-1">Match: {capitalize(description)}</div>
+                          <div className="text-xs text-green-700 mt-1">Match: {capitalizeMatchDescription(description)}</div>
                         </div>
                       ))}
                     </div>
