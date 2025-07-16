@@ -1008,11 +1008,7 @@ const PatternCard = ({
                         }
                       }
 
-                      return matchDescriptions.length > 0 ? (
-                        <p className="text-green-700">{[...new Set(matchDescriptions)].join(', ')}</p>
-                      ) : (
-                        <p className="text-green-700">Pattern matches your stash!</p>
-                      );
+                      return <p className="text-green-700">{capitalizeWeightInDescription(matchDescriptions.join(', '))}</p>;
                     })()}
                   </div>
                 </div>
