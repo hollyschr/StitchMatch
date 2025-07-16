@@ -97,11 +97,23 @@ const PatternCard = ({
     ? 'Owned'
     : (pattern.price ? String(pattern.price) : 'Free');
 
-  // Check if pattern matches the user's stash (for both search and patterns variants)
+  // Helper function to split required_weight into possible weights
+  function splitRequiredWeights(requiredWeight: string): string[] {
+    // Split on '/', ',', 'or', and trim whitespace
+    return requiredWeight
+      .split(/\s*\/|,| or /i)
+      .map(w => w.trim())
+      .filter(Boolean);
+  }
+
+  // Update matchesStash to handle multiple weights
   const matchesStash = () => {
     if (!pattern.required_weight || yarnStash.length === 0) {
       return false;
     }
+
+    // Split required_weight into possible weights
+    const possiblePatternWeights = splitRequiredWeights(pattern.required_weight);
 
     // Map stash weight values to pattern weight values
     const weightMapping: { [key: string]: string[] } = {
@@ -132,7 +144,6 @@ const PatternCard = ({
       'Jumbo (0-4 wpi)': ['Jumbo (0-4 wpi)', 'Jumbo']
     };
 
-    // Held yarn weight calculations
     const heldYarnCalculations: { [key: string]: { weight: string, description: string }[] } = {
       'thread': [
         { weight: 'Lace', description: '2 strands of thread = Lace weight' }
@@ -165,30 +176,24 @@ const PatternCard = ({
       ]
     };
 
-    // Helper function to normalize weight strings for comparison
     const normalizeWeight = (weight: string): string => {
       return weight.toLowerCase().replace(/\s*\(\d+\s*wpi\)/, '');
     };
 
-    // Helper function to check if a weight matches (including held yarn calculations)
     const checkWeightMatch = (stashWeight: string, patternWeight: string): { matches: boolean, description?: string } => {
       const stashNormalized = normalizeWeight(stashWeight);
       const patternNormalized = normalizeWeight(patternWeight);
-      // Direct match
       if (stashNormalized === patternNormalized) {
         return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      // Check weight mapping
       const possiblePatternWeights = (weightMapping[stashWeight] || []).map(w => normalizeWeight(w));
       if (possiblePatternWeights.includes(patternNormalized)) {
         return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      // Check reverse mapping
       const possibleStashWeights = (weightMapping[patternWeight] || []).map(w => normalizeWeight(w));
       if (possibleStashWeights.includes(stashNormalized)) {
         return { matches: true, description: `${stashWeight} (direct match)` };
       }
-      // Check held yarn calculations
       const heldCalculations = heldYarnCalculations[stashNormalized];
       if (heldCalculations) {
         for (const calc of heldCalculations) {
@@ -197,29 +202,28 @@ const PatternCard = ({
           }
         }
       }
-      // Check partial matching for cases like "fingering" vs "Fingering (14 wpi)"
       if (patternNormalized.includes(stashNormalized) || stashNormalized.includes(patternNormalized)) {
         return { matches: true, description: `${stashWeight} (direct match)` };
       }
       return { matches: false };
     };
 
-    // Collect all matching stash yarns/weights
     let totalYardage = 0;
     let matchDescriptions: string[] = [];
     for (const yarn of yarnStash) {
-      const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
-      if (weightCheck.matches) {
-        // For double-held, divide yardage by 2
-        const isDoubleHeld = weightCheck.description && weightCheck.description.toLowerCase().includes('2 strands');
-        totalYardage += isDoubleHeld ? yarn.yardage / 2 : yarn.yardage;
-        if (weightCheck.description) {
-          matchDescriptions.push(weightCheck.description);
+      for (const patternWeight of possiblePatternWeights) {
+        const weightCheck = checkWeightMatch(yarn.weight, patternWeight);
+        if (weightCheck.matches) {
+          const isDoubleHeld = weightCheck.description && weightCheck.description.toLowerCase().includes('2 strands');
+          totalYardage += isDoubleHeld ? yarn.yardage / 2 : yarn.yardage;
+          if (weightCheck.description) {
+            matchDescriptions.push(weightCheck.description);
+          }
+          break; // Only count each yarn once, even if it matches multiple weights
         }
       }
     }
 
-    // Handle different yardage scenarios
     const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
     const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
     let yardageMatches = false;
@@ -231,7 +235,6 @@ const PatternCard = ({
       return false;
     }
 
-    // Store all match descriptions for display
     if (yardageMatches && matchDescriptions.length > 0) {
       (pattern as any).heldYarnDescription = [...new Set(matchDescriptions)].join(', ');
     }
@@ -335,6 +338,7 @@ const PatternCard = ({
   const getMatchingYarns = () => {
     const matches: { yarn: YarnStash; description: string }[] = [];
     if (!pattern.required_weight || !yarnStash || yarnStash.length === 0) return matches;
+    const possiblePatternWeights = splitRequiredWeights(pattern.required_weight);
 
     // Map stash weight values to pattern weight values
     const weightMapping: { [key: string]: string[] } = {
@@ -425,21 +429,24 @@ const PatternCard = ({
       return { matches: false };
     };
     for (const yarn of yarnStash) {
-      const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
-      if (weightCheck.matches && weightCheck.description) {
-        // For double-held, divide yardage/grams by 2
-        const effectiveYardage = weightCheck.heldDouble ? yarn.yardage / 2 : yarn.yardage;
-        const effectiveGrams = weightCheck.heldDouble ? yarn.grams / 2 : yarn.grams;
-        let meetsYardage = true;
-        let meetsGrams = true;
-        if (pattern.yardage_min) {
-          meetsYardage = effectiveYardage >= pattern.yardage_min;
-        }
-        if (pattern.grams_min) {
-          meetsGrams = effectiveGrams >= pattern.grams_min;
-        }
-        if (meetsYardage && meetsGrams) {
-          matches.push({ yarn, description: weightCheck.description });
+      for (const patternWeight of possiblePatternWeights) {
+        const weightCheck = checkWeightMatch(yarn.weight, patternWeight);
+        if (weightCheck.matches && weightCheck.description) {
+          // For double-held, divide yardage/grams by 2
+          const effectiveYardage = weightCheck.heldDouble ? yarn.yardage / 2 : yarn.yardage;
+          const effectiveGrams = weightCheck.heldDouble ? yarn.grams / 2 : yarn.grams;
+          let meetsYardage = true;
+          let meetsGrams = true;
+          if (pattern.yardage_min) {
+            meetsYardage = effectiveYardage >= pattern.yardage_min;
+          }
+          if (pattern.grams_min) {
+            meetsGrams = effectiveGrams >= pattern.grams_min;
+          }
+          if (meetsYardage && meetsGrams) {
+            matches.push({ yarn, description: weightCheck.description });
+            break; // Only count each yarn once, even if it matches multiple weights
+          }
         }
       }
     }
@@ -834,6 +841,7 @@ const PatternCard = ({
                     ) : (() => {
                       // Calculate specific stash match descriptions
                       const matchDescriptions: string[] = [];
+                      const possiblePatternWeights = splitRequiredWeights(pattern.required_weight);
                       const weightMapping: { [key: string]: string[] } = {
                         'lace': ['Lace'],
                         'cobweb': ['Cobweb'],
@@ -938,9 +946,11 @@ const PatternCard = ({
 
                       // Check each yarn in stash
                       for (const yarn of yarnStash) {
-                        const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
-                        if (weightCheck.matches && weightCheck.description) {
-                          matchDescriptions.push(weightCheck.description);
+                        for (const patternWeight of possiblePatternWeights) {
+                          const weightCheck = checkWeightMatch(yarn.weight, patternWeight);
+                          if (weightCheck.matches && weightCheck.description) {
+                            matchDescriptions.push(weightCheck.description);
+                          }
                         }
                       }
 
@@ -1149,6 +1159,7 @@ const PatternCard = ({
                       ) : (() => {
                         // Calculate specific stash match descriptions
                         const matchDescriptions: string[] = [];
+                        const possiblePatternWeights = splitRequiredWeights(pattern.required_weight);
                         const weightMapping: { [key: string]: string[] } = {
                           'lace': ['Lace'],
                           'cobweb': ['Cobweb'],
@@ -1253,9 +1264,11 @@ const PatternCard = ({
 
                         // Check each yarn in stash
                         for (const yarn of yarnStash) {
-                          const weightCheck = checkWeightMatch(yarn.weight, pattern.required_weight);
-                          if (weightCheck.matches && weightCheck.description) {
-                            matchDescriptions.push(weightCheck.description);
+                          for (const patternWeight of possiblePatternWeights) {
+                            const weightCheck = checkWeightMatch(yarn.weight, patternWeight);
+                            if (weightCheck.matches && weightCheck.description) {
+                              matchDescriptions.push(weightCheck.description);
+                            }
                           }
                         }
 
