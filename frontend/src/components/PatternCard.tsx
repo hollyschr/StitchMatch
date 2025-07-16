@@ -494,19 +494,27 @@ const PatternCard = ({
     return desc.replace(/(strands of |^|= |, |\()([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase());
   }
 
-  // Add a helper to capitalize the weight portion in match descriptions
   function capitalizeWeightInDescription(desc: string) {
     if (!desc) return desc;
     // Split on comma, map each part
     return desc.split(',').map(part => {
-      let result = part;
-      // Replace any known weight (case-insensitive, word boundary)
+      let result = part.trim();
+      // Replace any known weight (case-insensitive, word boundary, start, or before punctuation/space)
       const weights = Object.keys(WEIGHT_DISPLAY_MAP).sort((a, b) => b.length - a.length); // longest first
+      let replaced = false;
       for (const w of weights) {
-        const regex = new RegExp(`\\b${w}\\b`, 'gi');
-        result = result.replace(regex, getDisplayWeight(w));
+        // Match at start, after space, or before punctuation/space/parenthesis
+        const regex = new RegExp(`(^|[\s\(\[\{{\.,;:])${w}(?=\b|\s|\(|\)|\.|,|;|:|$)`, 'gi');
+        if (regex.test(result)) {
+          result = result.replace(regex, (match, p1) => `${p1}${getDisplayWeight(w)}`);
+          replaced = true;
+        }
       }
-      return result.trim();
+      // Fallback: capitalize first word if no mapping found
+      if (!replaced) {
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+      }
+      return result;
     }).join(', ');
   }
 
