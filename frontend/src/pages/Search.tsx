@@ -763,6 +763,11 @@ const Search = () => {
     }
   };
 
+  // Add a helper to capitalize the first letter of a string
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E2F0FA] via-[#F9F9F6] to-[#FDFCFB]">
       <Header />
@@ -958,7 +963,7 @@ const Search = () => {
                 <div className="text-xs text-green-700 space-y-1">
                   {Object.entries(calculateStashYardageByWeight()).map(([weight, yardage]) => (
                     <p key={weight}>
-                      <span className="font-medium">{weight}:</span> {yardage} yards
+                      <span className="font-medium">{capitalize(weight)}:</span> {yardage} yards
                     </p>
                   ))}
                 </div>
