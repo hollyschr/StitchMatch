@@ -446,6 +446,11 @@ const PatternCard = ({
     return matches;
   };
 
+  // Add a helper function to capitalize the first letter of a string
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
   return (
     <>
       <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -1505,7 +1510,7 @@ const PatternCard = ({
                           <div className="text-xs text-gray-600">Yardage: {yarn.yardage} yd</div>
                           <div className="text-xs text-gray-600">Grams: {yarn.grams} g</div>
                           <div className="text-xs text-gray-600">Fiber: {yarn.fiber}</div>
-                          <div className="text-xs text-green-700 mt-1">Match: {description}</div>
+                          <div className="text-xs text-green-700 mt-1">Match: {capitalize(description)}</div>
                         </div>
                       ))}
                     </div>
