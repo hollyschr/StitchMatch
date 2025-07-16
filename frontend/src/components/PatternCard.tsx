@@ -494,6 +494,18 @@ const PatternCard = ({
     return desc.replace(/(strands of |^|= |, |\()([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase());
   }
 
+  // Add a helper to capitalize the weight portion in match descriptions
+  function capitalizeWeightInDescription(desc: string) {
+    // Replace any known weight at the start or before ' (direct match)' with its canonical form
+    const weights = Object.keys(WEIGHT_DISPLAY_MAP).sort((a, b) => b.length - a.length); // longest first
+    let result = desc;
+    for (const w of weights) {
+      const regex = new RegExp(`(^|\\b)${w}(?=\\b|\\s|\\(|$)`, 'gi');
+      result = result.replace(regex, getDisplayWeight(w));
+    }
+    return result;
+  }
+
   return (
     <>
       <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
@@ -740,7 +752,7 @@ const PatternCard = ({
               {(pattern.held_yarn_description || (pattern as any).heldYarnDescription) && (
                 <div>
                   <h4 className="font-medium text-sm mb-1">Stash Match:</h4>
-                  <p className="text-sm text-green-700 font-medium">{pattern.held_yarn_description || (pattern as any).heldYarnDescription}</p>
+                  <p className="text-sm text-green-700 font-medium">{capitalizeWeightInDescription(pattern.held_yarn_description || (pattern as any).heldYarnDescription)}</p>
                 </div>
               )}
               <div>
