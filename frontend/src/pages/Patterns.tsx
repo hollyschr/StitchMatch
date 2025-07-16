@@ -611,7 +611,6 @@ const Patterns = () => {
                               <SelectValue placeholder="Select craft type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="any">Any Craft</SelectItem>
                               <SelectItem value="Knitting">Knitting</SelectItem>
                               <SelectItem value="Crochet">Crochet</SelectItem>
                             </SelectContent>
