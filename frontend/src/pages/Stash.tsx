@@ -248,6 +248,12 @@ const Stash = () => {
   const addYarn = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const yardageValue = formData.get('yardage');
+    const gramsValue = formData.get('grams');
+    if ((!yardageValue || yardageValue === '') && (!gramsValue || gramsValue === '')) {
+      toast({ title: 'Please enter at least yardage or grams', variant: 'destructive' });
+      return;
+    }
     
     // Use snake_case keys as expected by the backend
     const newYarn = {
@@ -255,8 +261,8 @@ const Stash = () => {
       brand: formData.get('brand'),
       weight: formData.get('weight'),
       fiber: formData.get('fiber') ? formData.get('fiber') : '',
-      yardage: parseFloat(formData.get('yardage') as string),
-      grams: parseFloat(formData.get('grams') as string),
+      yardage: yardageValue && (yardageValue as string) !== '' ? parseFloat(yardageValue as string) : null,
+      grams: gramsValue && (gramsValue as string) !== '' ? parseFloat(gramsValue as string) : null,
     };
 
     fetch(`${API_CONFIG.endpoints.users}/${currentUser!.user_id}/yarn/`, {
@@ -309,13 +315,19 @@ const Stash = () => {
     if (!editingYarn) return;
 
     const formData = new FormData(event.currentTarget);
+    const yardageValue = formData.get('yardage');
+    const gramsValue = formData.get('grams');
+    if ((!yardageValue || yardageValue === '') && (!gramsValue || gramsValue === '')) {
+      toast({ title: 'Please enter at least yardage or grams', variant: 'destructive' });
+      return;
+    }
     const updatedYarn = {
       yarn_name: formData.get('yarnName') as string,
       brand: formData.get('brand') as string,
       weight: formData.get('weight') as string,
       fiber: formData.get('fiber') ? (formData.get('fiber') as string) : '',
-      yardage: parseFloat(formData.get('yardage') as string),
-      grams: parseFloat(formData.get('grams') as string),
+      yardage: yardageValue && (yardageValue as string) !== '' ? parseFloat(yardageValue as string) : null,
+      grams: gramsValue && (gramsValue as string) !== '' ? parseFloat(gramsValue as string) : null,
     };
 
     try {
@@ -734,13 +746,13 @@ const Stash = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="yardage">Yardage</Label>
-                      <Input id="yardage" name="yardage" type="number" required />
+                      <Input id="yardage" name="yardage" type="number" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="grams">Grams</Label>
-                      <Input id="grams" name="grams" type="number" required />
+                      <Input id="grams" name="grams" type="number" />
                     </div>
                   </div>
                   <Button type="submit" className="w-full">Add Yarn</Button>
@@ -885,7 +897,6 @@ const Stash = () => {
                       name="yardage" 
                       type="number" 
                       defaultValue={editingYarn.yardage}
-                      required 
                     />
                   </div>
                 </div>
@@ -897,7 +908,6 @@ const Stash = () => {
                       name="grams" 
                       type="number" 
                       defaultValue={editingYarn.grams}
-                      required 
                     />
                   </div>
                 </div>
