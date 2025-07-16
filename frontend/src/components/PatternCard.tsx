@@ -496,14 +496,18 @@ const PatternCard = ({
 
   // Add a helper to capitalize the weight portion in match descriptions
   function capitalizeWeightInDescription(desc: string) {
-    // Replace any known weight at the start or before ' (direct match)' with its canonical form
-    const weights = Object.keys(WEIGHT_DISPLAY_MAP).sort((a, b) => b.length - a.length); // longest first
-    let result = desc;
-    for (const w of weights) {
-      const regex = new RegExp(`(^|\\b)${w}(?=\\b|\\s|\\(|$)`, 'gi');
-      result = result.replace(regex, getDisplayWeight(w));
-    }
-    return result;
+    if (!desc) return desc;
+    // Split on comma, map each part
+    return desc.split(',').map(part => {
+      let result = part;
+      // Replace any known weight (case-insensitive, word boundary)
+      const weights = Object.keys(WEIGHT_DISPLAY_MAP).sort((a, b) => b.length - a.length); // longest first
+      for (const w of weights) {
+        const regex = new RegExp(`\\b${w}\\b`, 'gi');
+        result = result.replace(regex, getDisplayWeight(w));
+      }
+      return result.trim();
+    }).join(', ');
   }
 
   return (
