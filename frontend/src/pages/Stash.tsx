@@ -505,18 +505,11 @@ const Stash = () => {
     setIsPatternsDialogOpen(true);
     setCurrentPage(1);
     try {
-      // Use a large page_size to fetch all matches at once
-      const uploadedOnlyParam = showUploadedOnly ? '&uploaded_only=true' : '';
-      const response = await fetch(`${API_CONFIG.endpoints.patterns}/stash-match/${currentUser!.user_id}?page=1&page_size=1000${uploadedOnlyParam}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMatchedPatterns(data.patterns || []);
-      } else {
-        console.error('Error fetching stash matches:', response.status);
-        setMatchedPatterns([]);
-      }
+      // Filter the already-loaded allStashMatches for this specific yarn
+      const yarnMatches = allStashMatches.filter((pattern) => matchesStash(pattern, [yarn]));
+      setMatchedPatterns(yarnMatches);
     } catch (error) {
-      console.error('Error fetching matched patterns:', error);
+      console.error('Error filtering matched patterns:', error);
       setMatchedPatterns([]);
     } finally {
       setIsLoadingPatterns(false);
@@ -637,8 +630,8 @@ const Stash = () => {
   function capitalize(str: string) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
-  const filteredPatterns = selectedYarn
-    ? matchedPatterns.filter((pattern) => matchesStash(pattern, [selectedYarn]) && (!showUploadedOnly || pattern.google_drive_file_id))
+  const filteredPatterns = showUploadedOnly
+    ? matchedPatterns.filter((pattern) => pattern.google_drive_file_id)
     : matchedPatterns;
 
   // Pagination: always show 20 patterns per page
@@ -647,13 +640,7 @@ const Stash = () => {
   const totalFilteredPatterns = filteredPatterns.length;
   const totalFilteredPages = Math.ceil(totalFilteredPatterns / patternsPerPage);
 
-  // Refetch patterns when uploaded_only filter changes
-  useEffect(() => {
-    if (selectedYarn && isPatternsDialogOpen) {
-      fetchMatchedPatterns(selectedYarn);
-      setCurrentPage(1);
-    }
-  }, [showUploadedOnly]);
+
 
   // Scroll to top of patterns dialog when page changes
   useEffect(() => {
