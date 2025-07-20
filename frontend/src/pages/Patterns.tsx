@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Book, Trash2, LogOut, Heart, Pin } from 'lucide-react';
+import { Plus, Book, Trash2, LogOut, Heart, Pin, Package } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -741,8 +741,19 @@ const Patterns = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Checkbox id="stash-matches-only" checked={showStashMatchesOnly} onCheckedChange={checked => setShowStashMatchesOnly(!!checked)} />
-                  <Label htmlFor="stash-matches-only" className="text-sm font-medium">Match Stash</Label>
+                  <Button 
+                    type="button" 
+                    variant={showStashMatchesOnly ? "default" : "outline"}
+                    className={`font-semibold shadow-md ${
+                      showStashMatchesOnly 
+                        ? "bg-green-600 hover:bg-green-700 text-white !bg-opacity-100" 
+                        : "border-green-600 text-green-600 hover:bg-green-50"
+                    }`}
+                    onClick={() => setShowStashMatchesOnly(!showStashMatchesOnly)}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Match Stash
+                  </Button>
                 </div>
 
                 <div className="flex items-center gap-2">
