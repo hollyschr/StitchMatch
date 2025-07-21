@@ -36,7 +36,8 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <Scissors className="h-8 w-8 text-green-600" />
+              {/* <Scissors className="h-8 w-8 text-green-600" /> */}
+              <img src="/knitting.png" alt="Knitting Logo" className="h-8 w-8" />
               <h1 className="text-2xl font-bold text-gray-900">StitchMatch</h1>
             </div>
             <nav className="flex space-x-4">
