@@ -128,9 +128,7 @@ function matchesStash(pattern, yarnStash) {
   const hasMinYardage = pattern.yardage_min !== null && pattern.yardage_min !== undefined;
   const hasMaxYardage = pattern.yardage_max !== null && pattern.yardage_max !== undefined;
   let yardageMatches = false;
-  if (hasMinYardage && hasMaxYardage) {
-    yardageMatches = totalYardage >= pattern.yardage_max;
-  } else if (hasMinYardage) {
+  if (hasMinYardage) {
     yardageMatches = totalYardage >= pattern.yardage_min;
   } else if (hasMaxYardage) {
     yardageMatches = totalYardage >= pattern.yardage_max;
