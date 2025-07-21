@@ -34,7 +34,7 @@ const Header = () => {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
             {/* <Scissors className="h-8 w-8 text-green-600" /> */}
-            <img src="/yarn-ball.png" alt="Yarn Ball Logo" className="h-8 w-8" style={{ filter: 'brightness(0) saturate(100%) sepia(100%) hue-rotate(85deg) saturate(600%) brightness(90%)' }} />
+            <img src="/needle.png" alt="Needle Logo" className="h-8 w-8" style={{ filter: 'brightness(0) saturate(100%) sepia(100%) hue-rotate(85deg) saturate(600%) brightness(90%)' }} />
             <h1 className="text-2xl font-bold text-gray-900">StitchMatch</h1>
           </div>
           <nav className="flex items-center space-x-4">
