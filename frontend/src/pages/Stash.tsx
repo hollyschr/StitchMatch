@@ -135,6 +135,7 @@ function matchesStash(pattern, yarnStash) {
   } else {
     return false;
   }
+  console.log("matchesStash result:", {pattern, yarnStash, totalYardage, yardageMatches});
   return yardageMatches;
 }
 
@@ -503,8 +504,12 @@ const Stash = () => {
     setIsPatternsDialogOpen(true);
     setCurrentPage(1);
     try {
-      // Filter the already-loaded allStashMatches for this specific yarn
-      const yarnMatches = allStashMatches.filter((pattern) => matchesStash(pattern, [yarn]));
+      // Debug: Log all patterns for this yarn
+      console.log("allStashMatches", allStashMatches.map(p => ({name: p.name, required_weight: p.required_weight, yardage_min: p.yardage_min, yardage_max: p.yardage_max, google_drive_file_id: p.google_drive_file_id})));
+      const yarnMatches = allStashMatches.filter((pattern) => {
+        console.log("Pattern:", pattern, "Yarn:", yarn);
+        return matchesStash(pattern, [yarn]);
+      });
       setMatchedPatterns(yarnMatches);
     } catch (error) {
       console.error('Error filtering matched patterns:', error);
@@ -1112,6 +1117,9 @@ const Stash = () => {
             <DialogTitle>
               Patterns for {selectedYarn?.yarnName} ({selectedYarn?.weight})
             </DialogTitle>
+            <DialogDescription>
+              This dialog shows all patterns that match the selected yarn from your stash.
+            </DialogDescription>
             <div className="flex items-center space-x-2 mt-2">
               <Checkbox 
                 id="uploaded-only" 
