@@ -422,9 +422,19 @@ const Search = () => {
         return;
       }
       
-      // If stash matching is enabled and we have a user, use the stash matching endpoint
-      if (shouldMatchStash && userId) {
-        // Use the stash matching endpoint (matches yarn stash)
+      // If stash matching is enabled, check if user is logged in
+      if (shouldMatchStash) {
+        if (!userId) {
+          // User not logged in but trying to match stash - show error and return
+          setIsLoading(false);
+          toast({ 
+            title: "Login required", 
+            description: "Please log in to match patterns with your yarn stash." 
+          });
+          return;
+        }
+        
+        // User is logged in, proceed with stash matching endpoint
         const stashParams = new URLSearchParams();
         stashParams.append('page', page.toString());
         stashParams.append('page_size', '30');
@@ -482,6 +492,10 @@ const Search = () => {
             
             // Set stash matching mode to true since we're using the stash matching endpoint
             setIsStashMatchingMode(true);
+          } else {
+            setIsLoading(false);
+            toast({ title: "Error fetching stash matches from server." });
+            return;
           }
         }
       } else {
@@ -670,6 +684,15 @@ const Search = () => {
       } catch {}
     }
     
+    // Check if user is logged in
+    if (!userId) {
+      toast({ 
+        title: "Login required", 
+        description: "Please log in to match patterns with your yarn stash." 
+      });
+      return;
+    }
+    
     if (yarnStash.length === 0) {
       toast({ 
         title: "No stash data", 
@@ -681,8 +704,6 @@ const Search = () => {
     // Just toggle the state without triggering a search
     setIsMatchingStash(!isMatchingStash);
   }, [yarnStash.length, isMatchingStash]);
-
-
 
   const repeatSearch = (query: SearchQuery) => {
     const form = document.getElementById('searchForm') as HTMLFormElement;
