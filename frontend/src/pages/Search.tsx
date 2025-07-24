@@ -1057,18 +1057,24 @@ const Search = () => {
             {!isLoading && searchResults.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {searchResults.map((pattern) => (
-                    <PatternCard 
-                      key={pattern.pattern_id} 
-                      pattern={pattern} 
-                      yarnStash={yarnStash} 
-                      isStashMatchingMode={isStashMatchingMode}
-                      showFavoriteButton={true}
-                      isFavorited={favoritedPatterns.has(pattern.pattern_id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      showDownloadButton={true}
-                    />
-                  ))}
+                  {searchResults.map((pattern) => {
+                    // Check if user is logged in
+                    const savedUser = localStorage.getItem('currentUser');
+                    const isLoggedIn = savedUser !== null;
+                    
+                    return (
+                      <PatternCard 
+                        key={pattern.pattern_id} 
+                        pattern={pattern} 
+                        yarnStash={isLoggedIn ? yarnStash : []} 
+                        isStashMatchingMode={isStashMatchingMode}
+                        showFavoriteButton={true}
+                        isFavorited={favoritedPatterns.has(pattern.pattern_id)}
+                        onToggleFavorite={handleToggleFavorite}
+                        showDownloadButton={true}
+                      />
+                    );
+                  })}
                 </div>
                 
                 {/* Bottom Pagination Controls - Full Featured */}
