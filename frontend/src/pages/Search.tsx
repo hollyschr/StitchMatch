@@ -975,21 +975,27 @@ const Search = () => {
                 </p>
               </Card>
             )}
-            {yarnStash.length > 0 && (
-              <Card className="p-4 mt-4 bg-green-50 border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="h-4 w-4 text-green-600" />
-                  <p className="text-sm font-medium text-green-800">Your Stash Summary</p>
-                </div>
-                <div className="text-xs text-green-700 space-y-1">
-                  {Object.entries(calculateStashYardageByWeight()).map(([weight, yardage]) => (
-                    <p key={weight}>
-                      <span className="font-medium">{capitalize(weight)}:</span> {yardage} yards
-                    </p>
-                  ))}
-                </div>
-              </Card>
-            )}
+            {(() => {
+              // Check if user is logged in
+              const savedUser = localStorage.getItem('currentUser');
+              const isLoggedIn = savedUser !== null;
+              
+              return isLoggedIn && yarnStash.length > 0 && (
+                <Card className="p-4 mt-4 bg-green-50 border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">Your Stash Summary</p>
+                  </div>
+                  <div className="text-xs text-green-700 space-y-1">
+                    {Object.entries(calculateStashYardageByWeight()).map(([weight, yardage]) => (
+                      <p key={weight}>
+                        <span className="font-medium">{capitalize(weight)}:</span> {yardage} yards
+                      </p>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })()}
           </div>
           {/* Search Results */}
           <div className="lg:col-span-3">
