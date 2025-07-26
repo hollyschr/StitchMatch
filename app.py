@@ -110,6 +110,72 @@ def fix_user_sequence():
     except Exception as e:
         print(f"[STARTUP] Failed to fix user sequence: {e}")
 
+@app.on_event("startup")
+def fix_tool_sequence():
+    try:
+        if not DATABASE_URL.startswith("sqlite"):
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                # Get the current maximum tool_id
+                result = conn.execute(text("SELECT MAX(tool_id) FROM \"Tool\""))
+                max_id = result.scalar()
+                
+                if max_id is None:
+                    max_id = 0
+                
+                print(f"[STARTUP] Current maximum tool_id: {max_id}")
+                
+                # Reset the sequence to start after the maximum ID
+                # Note: sequence name might be different, check your PostgreSQL schema
+                try:
+                    conn.execute(text(f"SELECT setval('\"Tool_tool_id_seq\"', {max_id + 1}, false)"))
+                    conn.commit()
+                    print(f"[STARTUP] Tool sequence reset to start from: {max_id + 1}")
+                except Exception as seq_error:
+                    print(f"[STARTUP] Could not reset tool sequence: {seq_error}")
+                    # Try alternative sequence name
+                    try:
+                        conn.execute(text(f"SELECT setval('tool_tool_id_seq', {max_id + 1}, false)"))
+                        conn.commit()
+                        print(f"[STARTUP] Tool sequence reset to start from: {max_id + 1}")
+                    except Exception as seq_error2:
+                        print(f"[STARTUP] Could not reset tool sequence (alt name): {seq_error2}")
+    except Exception as e:
+        print(f"[STARTUP] Failed to fix tool sequence: {e}")
+
+# Debug endpoint to check tool creation issues
+@app.get("/debug/tools")
+def debug_tools():
+    db = SessionLocal()
+    try:
+        # Get all tools
+        tools = db.query(Tool).all()
+        result = []
+        for tool in tools:
+            # Count how many users own this tool
+            owner_count = db.query(OwnsTool).filter(OwnsTool.tool_id == tool.tool_id).count()
+            result.append({
+                "tool_id": tool.tool_id,
+                "type": tool.type,
+                "size": tool.size,
+                "owner_count": owner_count
+            })
+        
+        # Also check if the table exists and has proper structure
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        columns = inspector.get_columns('Tool')
+        
+        db.close()
+        return {
+            "tools": result,
+            "total_tools": len(result),
+            "table_columns": columns
+        }
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
 # Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
 # Custom middleware to add cache-busting headers
@@ -182,9 +248,9 @@ class YarnType(Base):
 
 class Tool(Base):
     __tablename__ = "Tool"
-    tool_id = Column(Integer, primary_key=True, index=True)
-    type = Column(String)
-    size = Column(String)
+    tool_id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # Add autoincrement=True
+    type = Column(String, nullable=False)  # Add nullable=False for data integrity
+    size = Column(String, nullable=False)  # Add nullable=False for data integrity
 
 class OwnsPattern(Base):
     __tablename__ = "OwnsPattern"
@@ -288,6 +354,11 @@ class YarnCreate(BaseModel):
 class ToolCreate(BaseModel):
     type: str
     size: str
+    
+    class Config:
+        # Add validation to ensure strings are not empty
+        min_anystr_length = 1
+        strip_whitespace = True
 
 class PatternResponse(BaseModel):
     pattern_id: int
@@ -860,8 +931,8 @@ def add_tool(user_id: int, tool: ToolCreate):
     db = SessionLocal()
     try:
         # Check if user exists
-        user = db.query(User).filter(User.user_id == user_id).first()
-        if not user:
+        user_obj = db.query(User).filter(User.user_id == user_id).first()
+        if not user_obj:
             raise HTTPException(status_code=404, detail="User not found")
         
         # Check if tool already exists
@@ -879,19 +950,24 @@ def add_tool(user_id: int, tool: ToolCreate):
             
             if existing_ownership:
                 # User already owns this tool
+                db.close()
                 raise HTTPException(status_code=400, detail="You already own this tool")
             
             # Create ownership relationship for existing tool
             db_owns = OwnsTool(user_id=user_id, tool_id=existing_tool.tool_id)
             db.add(db_owns)
             db.commit()
+            db.close()
             
-            return {"tool_id": existing_tool.tool_id}
+            return {"tool_id": existing_tool.tool_id, "message": "Tool added to your collection"}
         else:
-            # Create new tool
-            db_tool = Tool(type=tool.type, size=tool.size)
+            # Create new tool - don't specify tool_id, let it auto-increment
+            db_tool = Tool(
+                type=tool.type,
+                size=tool.size
+            )
             db.add(db_tool)
-            db.flush()  # Get the tool_id without committing
+            db.flush()  # Flush to get the auto-generated tool_id
             
             # Create the ownership relationship
             db_owns = OwnsTool(user_id=user_id, tool_id=db_tool.tool_id)
@@ -899,19 +975,22 @@ def add_tool(user_id: int, tool: ToolCreate):
             
             # Commit both operations together
             db.commit()
+            db.close()
             
-            return {"tool_id": db_tool.tool_id}
+            return {"tool_id": db_tool.tool_id, "message": "New tool created and added to your collection"}
+            
     except HTTPException:
-        # Re-raise HTTP exceptions
+        # Re-raise HTTP exceptions without rollback
+        db.close()
         raise
     except Exception as e:
         db.rollback()
+        db.close()
         print(f"Error adding tool: {str(e)}")
         print(f"Tool data: type={tool.type}, size={tool.size}")
         print(f"User ID: {user_id}")
         raise HTTPException(status_code=500, detail=f"Error adding tool: {str(e)}")
-    finally:
-        db.close()
+
 
 @app.delete("/users/{user_id}/tools/{tool_id}")
 def delete_user_tool(user_id: int, tool_id: int):
