@@ -176,6 +176,91 @@ def debug_tools():
         db.close()
         return {"error": str(e)}
 
+@app.get("/debug/tool-duplicates")
+def debug_tool_duplicates():
+    """Check for potential duplicate tools"""
+    db = SessionLocal()
+    try:
+        # Find tools with same type+size combinations
+        from sqlalchemy import func
+        duplicates = db.query(
+            Tool.type,
+            Tool.size,
+            func.count(Tool.tool_id).label('count')
+        ).group_by(Tool.type, Tool.size).having(func.count(Tool.tool_id) > 1).all()
+        
+        result = []
+        for dup in duplicates:
+            # Get all tools with this type+size combo
+            tools = db.query(Tool).filter(
+                Tool.type == dup.type,
+                Tool.size == dup.size
+            ).all()
+            
+            result.append({
+                "type": dup.type,
+                "size": dup.size,
+                "count": dup.count,
+                "tool_ids": [t.tool_id for t in tools]
+            })
+        
+        db.close()
+        return {
+            "duplicates_found": len(result),
+            "duplicate_groups": result
+        }
+    except Exception as e:
+        db.close()
+        return {"error": str(e)}
+
+
+app.post("/admin/cleanup-duplicate-tools")
+def cleanup_duplicate_tools():
+    """Remove duplicate tools, keeping the lowest tool_id for each type+size combo"""
+    db = SessionLocal()
+    try:
+        from sqlalchemy import func
+        
+        # Find duplicate groups
+        duplicates = db.query(
+            Tool.type,
+            Tool.size,
+            func.count(Tool.tool_id).label('count')
+        ).group_by(Tool.type, Tool.size).having(func.count(Tool.tool_id) > 1).all()
+        
+        cleaned_count = 0
+        for dup in duplicates:
+            # Get all tools with this type+size combo, ordered by tool_id
+            tools = db.query(Tool).filter(
+                Tool.type == dup.type,
+                Tool.size == dup.size
+            ).order_by(Tool.tool_id).all()
+            
+            # Keep the first one, delete the rest
+            tools_to_delete = tools[1:]  # Skip the first (lowest ID)
+            
+            for tool in tools_to_delete:
+                # Update any ownership records to point to the kept tool
+                db.query(OwnsTool).filter(
+                    OwnsTool.tool_id == tool.tool_id
+                ).update({"tool_id": tools[0].tool_id})
+                
+                # Delete the duplicate tool
+                db.delete(tool)
+                cleaned_count += 1
+        
+        db.commit()
+        return {
+            "message": f"Cleaned up {cleaned_count} duplicate tools",
+            "duplicate_groups_processed": len(duplicates)
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+    finally:
+        db.close()
+
 # Removed HTTP to HTTPS redirection middleware - Railway handles this automatically
 
 # Custom middleware to add cache-busting headers
@@ -248,9 +333,14 @@ class YarnType(Base):
 
 class Tool(Base):
     __tablename__ = "Tool"
-    tool_id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # Add autoincrement=True
-    type = Column(String, nullable=False)  # Add nullable=False for data integrity
-    size = Column(String, nullable=False)  # Add nullable=False for data integrity
+    tool_id = Column(Integer, primary_key=True, autoincrement=True)
+    type = Column(String)
+    size = Column(String)
+    
+    # Add the unique constraint that matches your database
+    __table_args__ = (
+        UniqueConstraint('type', 'size', name='unique_tool_type_size'),
+    )
 
 class OwnsPattern(Base):
     __tablename__ = "OwnsPattern"
@@ -901,7 +991,6 @@ def add_yarn(user_id: int, yarn: YarnCreate):
     finally:
         db.close()
 
-@app.get("/users/{user_id}/tools")
 @app.get("/users/{user_id}/tools/")
 def get_user_tools(user_id: int):
     db = SessionLocal()
@@ -935,7 +1024,7 @@ def add_tool(user_id: int, tool: ToolCreate):
         if not user_obj:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Check if tool already exists
+        # Check if tool already exists (due to UNIQUE constraint)
         existing_tool = db.query(Tool).filter(
             Tool.type == tool.type,
             Tool.size == tool.size
@@ -950,45 +1039,69 @@ def add_tool(user_id: int, tool: ToolCreate):
             
             if existing_ownership:
                 # User already owns this tool
-                db.close()
                 raise HTTPException(status_code=400, detail="You already own this tool")
             
             # Create ownership relationship for existing tool
             db_owns = OwnsTool(user_id=user_id, tool_id=existing_tool.tool_id)
             db.add(db_owns)
             db.commit()
-            db.close()
             
             return {"tool_id": existing_tool.tool_id, "message": "Tool added to your collection"}
         else:
-            # Create new tool - don't specify tool_id, let it auto-increment
-            db_tool = Tool(
-                type=tool.type,
-                size=tool.size
-            )
+            # Create new tool
+            db_tool = Tool(type=tool.type, size=tool.size)
             db.add(db_tool)
-            db.flush()  # Flush to get the auto-generated tool_id
             
-            # Create the ownership relationship
+            try:
+                db.flush()  # This will fail if there's a unique constraint violation
+            except Exception as flush_error:
+                # Handle the case where another request created the same tool between our check and insert
+                db.rollback()
+                
+                # Try to find the tool that was just created
+                existing_tool = db.query(Tool).filter(
+                    Tool.type == tool.type,
+                    Tool.size == tool.size
+                ).first()
+                
+                if existing_tool:
+                    # Check if user already owns it
+                    existing_ownership = db.query(OwnsTool).filter(
+                        OwnsTool.user_id == user_id,
+                        OwnsTool.tool_id == existing_tool.tool_id
+                    ).first()
+                    
+                    if existing_ownership:
+                        raise HTTPException(status_code=400, detail="You already own this tool")
+                    
+                    # Create ownership for the existing tool
+                    db_owns = OwnsTool(user_id=user_id, tool_id=existing_tool.tool_id)
+                    db.add(db_owns)
+                    db.commit()
+                    
+                    return {"tool_id": existing_tool.tool_id, "message": "Tool added to your collection"}
+                else:
+                    # Re-raise the original error if we can't find the tool
+                    raise HTTPException(status_code=500, detail=f"Database error: {str(flush_error)}")
+            
+            # If flush succeeded, create ownership relationship
             db_owns = OwnsTool(user_id=user_id, tool_id=db_tool.tool_id)
             db.add(db_owns)
-            
-            # Commit both operations together
             db.commit()
-            db.close()
             
             return {"tool_id": db_tool.tool_id, "message": "New tool created and added to your collection"}
             
     except HTTPException:
-        # Re-raise HTTP exceptions without rollback
+        # Re-raise HTTP exceptions
         db.close()
         raise
     except Exception as e:
         db.rollback()
         db.close()
-        print(f"Error adding tool: {str(e)}")
-        print(f"Tool data: type={tool.type}, size={tool.size}")
-        print(f"User ID: {user_id}")
+        print(f"[ERROR] Error adding tool: {str(e)}")
+        print(f"[ERROR] Tool data: type='{tool.type}', size='{tool.size}'")
+        print(f"[ERROR] User ID: {user_id}")
+        print(f"[ERROR] Error type: {type(e).__name__}")
         raise HTTPException(status_code=500, detail=f"Error adding tool: {str(e)}")
 
 
@@ -1028,7 +1141,69 @@ def delete_user_tool(user_id: int, tool_id: int):
     db.close()
     return {"message": "Tool deleted successfully"}
 
-@app.get("/patterns", response_model=PaginatedPatternResponse)
+@app.post("/users/{user_id}/tools/alternative")
+def add_tool_alternative(user_id: int, tool: ToolCreate):
+    """Alternative approach using get_or_create pattern"""
+    db = SessionLocal()
+    try:
+        # Check if user exists
+        user_obj = db.query(User).filter(User.user_id == user_id).first()
+        if not user_obj:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get or create tool (handles unique constraint gracefully)
+        existing_tool = db.query(Tool).filter(
+            Tool.type == tool.type,
+            Tool.size == tool.size
+        ).first()
+        
+        if not existing_tool:
+            # Try to create new tool
+            try:
+                db_tool = Tool(type=tool.type, size=tool.size)
+                db.add(db_tool)
+                db.flush()
+                tool_to_use = db_tool
+            except Exception as create_error:
+                # If creation failed due to unique constraint, try to get it again
+                db.rollback()
+                existing_tool = db.query(Tool).filter(
+                    Tool.type == tool.type,
+                    Tool.size == tool.size
+                ).first()
+                if existing_tool:
+                    tool_to_use = existing_tool
+                else:
+                    raise HTTPException(status_code=500, detail=f"Could not create or find tool: {str(create_error)}")
+        else:
+            tool_to_use = existing_tool
+        
+        # Check if user already owns this tool
+        existing_ownership = db.query(OwnsTool).filter(
+            OwnsTool.user_id == user_id,
+            OwnsTool.tool_id == tool_to_use.tool_id
+        ).first()
+        
+        if existing_ownership:
+            raise HTTPException(status_code=400, detail="You already own this tool")
+        
+        # Create ownership relationship
+        db_owns = OwnsTool(user_id=user_id, tool_id=tool_to_use.tool_id)
+        db.add(db_owns)
+        db.commit()
+        
+        return {"tool_id": tool_to_use.tool_id, "message": "Tool added to your collection"}
+        
+    except HTTPException:
+        db.close()
+        raise
+    except Exception as e:
+        db.rollback()
+        db.close()
+        print(f"[ERROR] Error in alternative add_tool: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 @app.get("/patterns/", response_model=PaginatedPatternResponse)
 def get_all_patterns(
     page: int = 1,
