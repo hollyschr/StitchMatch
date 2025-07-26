@@ -269,6 +269,17 @@ const Stash = () => {
       toast({ title: 'Please enter at least yardage or grams', variant: 'destructive' });
       return;
     }
+
+    // Parse the values
+    const yardage = yardageValue && (yardageValue as string) !== '' ? parseFloat(yardageValue as string) : null;
+    const grams = gramsValue && (gramsValue as string) !== '' ? parseFloat(gramsValue as string) : null;
+  
+    // Check if provided values are greater than 0
+    if ((yardage !== null && (isNaN(yardage) || yardage <= 0)) || 
+        (grams !== null && (isNaN(grams) || grams <= 0))) {
+      toast({ title: 'Yardage and grams must be greater than 0', variant: 'destructive' });
+      return;
+    }
     
     // Use snake_case keys as expected by the backend
     const newYarn = {
@@ -336,6 +347,18 @@ const Stash = () => {
       toast({ title: 'Please enter at least yardage or grams', variant: 'destructive' });
       return;
     }
+
+    // Parse the values
+    const yardage = yardageValue && (yardageValue as string) !== '' ? parseFloat(yardageValue as string) : null;
+    const grams = gramsValue && (gramsValue as string) !== '' ? parseFloat(gramsValue as string) : null;
+  
+    // Check if provided values are greater than 0
+    if ((yardage !== null && (isNaN(yardage) || yardage <= 0)) || 
+        (grams !== null && (isNaN(grams) || grams <= 0))) {
+      toast({ title: 'Yardage and grams must be greater than 0', variant: 'destructive' });
+      return;
+    }
+
     const updatedYarn = {
       yarn_name: formData.get('yarnName') as string,
       brand: formData.get('brand') as string,
