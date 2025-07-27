@@ -105,7 +105,8 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
     yardage_min: pattern.yardage_min?.toString() || '',
     yardage_max: pattern.yardage_max?.toString() || '',
     grams_min: pattern.grams_min?.toString() || '',
-    grams_max: pattern.grams_max?.toString() || ''
+    grams_max: pattern.grams_max?.toString() || '',
+    google_drive_file_id: pattern.google_drive_file_id || null  
   });
 
   // Helper function to get placeholder URL based on craft type
@@ -125,7 +126,8 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
       yardage_min: pattern.yardage_min?.toString() || '',
       yardage_max: pattern.yardage_max?.toString() || '',
       grams_min: pattern.grams_min?.toString() || '',
-      grams_max: pattern.grams_max?.toString() || ''
+      grams_max: pattern.grams_max?.toString() || '',
+      google_drive_file_id: pattern.google_drive_file_id || null 
     });
   }, [pattern]);
 
@@ -161,7 +163,7 @@ export const EditPatternDialog: React.FC<EditPatternDialogProps> = ({
           name: formData.name,
           designer: formData.designer,
           image: formData.image || getPlaceholderUrl(formData.craft_type),
-          google_drive_file_id: removePdf ? null : (selectedGoogleDriveFile ? selectedGoogleDriveFile.id : pattern.google_drive_file_id),
+          google_drive_file_id: removePdf ? null : (selectedGoogleDriveFile ? selectedGoogleDriveFile.id : formData.google_drive_file_id || pattern.google_drive_file_id),
           description: formData.description || undefined,
           project_type: formData.project_type || undefined,
           craft_type: formData.craft_type || undefined,
