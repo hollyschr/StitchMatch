@@ -40,4 +40,24 @@ console.log('users endpoint:', API_CONFIG.endpoints.users);
 console.log('favorites endpoint:', API_CONFIG.endpoints.favorites);
 console.log('==========================');
 
+// Force all Railway HTTP requests to HTTPS
+const originalFetch = window.fetch;
+window.fetch = function(url: string | Request, ...args: any[]) {
+  let urlString = typeof url === 'string' ? url : url.url;
+  
+  // Convert any Railway HTTP URLs to HTTPS
+  if (urlString.includes('web-production-e76a.up.railway.app') && urlString.startsWith('http://')) {
+    urlString = urlString.replace('http://', 'https://');
+    console.log('🔄 Converted HTTP to HTTPS:', urlString);
+    
+    if (typeof url === 'string') {
+      url = urlString;
+    } else {
+      url = new Request(urlString, url);
+    }
+  }
+  
+  return originalFetch.call(this, url, ...args);
+};
+
 export default API_CONFIG; 
