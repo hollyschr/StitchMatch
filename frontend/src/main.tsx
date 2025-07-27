@@ -1,3 +1,40 @@
+// Emergency HTTP to HTTPS redirect - runs before everything else
+(function() {
+  console.log('🛡️ HTTP to HTTPS protection activated');
+  
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    let url: string;
+    
+    if (typeof input === 'string') {
+      url = input;
+    } else if (input instanceof URL) {
+      url = input.href;
+    } else if (input instanceof Request) {
+      url = input.url;
+    } else {
+      url = String(input);
+    }
+    
+    // Force HTTPS for Railway requests
+    if (url.includes('web-production-e76a.up.railway.app') && url.startsWith('http://')) {
+      console.log('🚨 INTERCEPTED HTTP REQUEST:', url);
+      const httpsUrl = url.replace('http://', 'https://');
+      console.log('🔄 CONVERTING TO HTTPS:', httpsUrl);
+      
+      if (typeof input === 'string') {
+        input = httpsUrl;
+      } else if (input instanceof URL) {
+        input = new URL(httpsUrl);
+      } else if (input instanceof Request) {
+        input = new Request(httpsUrl, input);
+      }
+    }
+    
+    return originalFetch.call(this, input, init);
+  };
+})();
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
