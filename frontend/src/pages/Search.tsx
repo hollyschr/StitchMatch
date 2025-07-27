@@ -62,7 +62,23 @@ interface YarnStash {
   grams: number;
 }
 
+console.log('🔍 SEARCH PAGE API CONFIG CHECK:');
+console.log('API_CONFIG.endpoints.patterns:', API_CONFIG.endpoints.patterns);
+console.log('API_CONFIG.baseUrl:', API_CONFIG.baseUrl);
 
+// Override fetch to catch HTTP requests
+const originalFetch = window.fetch;
+window.fetch = function(url: string | Request, ...args: any[]) {
+  const urlString = typeof url === 'string' ? url : url.url;
+  console.log('🔍 FETCH REQUEST DETECTED:', urlString);
+  
+  if (urlString.includes('railway.app') && urlString.startsWith('http://')) {
+    console.error('🚨 HTTP REQUEST INTERCEPTED IN SEARCH PAGE:', urlString);
+    console.trace('🚨 Stack trace:');
+  }
+  
+  return originalFetch.call(this, url, ...args);
+};
 
 const Search = () => {
   const [searchResults, setSearchResults] = useState<Pattern[]>([]);
